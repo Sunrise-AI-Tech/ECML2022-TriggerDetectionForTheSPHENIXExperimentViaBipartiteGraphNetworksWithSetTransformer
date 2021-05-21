@@ -1,0 +1,46 @@
+model_name: GNN_Diffpool
+output_dir: results/GNN_Diffpool_midloss/scaled_hits/trigger_NN_3
+epochs: 500
+
+model:
+  hidden_dim: 60
+  hidden_activation: Tanh
+  layer_norm: True
+  learning_rate: 0.0005
+  lr_scheduler_decrease_rate: 0.995
+  mid_loss: True
+  mid_loss_weight: 0.0001
+  GNN_config:
+    hidden_dim: 16
+    hidden_activation: Tanh
+    layer_norm: True
+    n_graph_iters: 3
+    # edgenet: False
+  diff_pool_config:
+    max_num_nodes: 100
+    hidden_dim: 16
+    embedding_dim: 16
+    label_dim: 1
+    num_layers: 2
+    #num_pooling: 1
+    assign_hidden_dim: 16
+    assign_ratio: 0.02
+    linkpred: False
+
+data:
+    name: hits_loader
+    input_dir: ../prepare/scaled_hits_data/trigger-event
+    # input_dir: ../prepare/scaled_hits_data/nontrigger-event/NN
+    n_train: 200000 #000 # 000 
+    n_valid: 10000 #00 # 00
+    real_weight: 1
+    false_weight: 1
+    batch_size: 100
+    n_input_dir: 2
+    input_dir2: ../prepare/scaled_hits_data/nontrigger-event/NN
+    # input_dir3: ../prepare/hits_data/nontrigger-event/ND
+    random_permutation: True
+    n_train2: 200000 # 000 #00
+    n_valid2: 10000 #00 # 00 #00
+    n_train3: 100 #00
+    n_valid3: 100 #00

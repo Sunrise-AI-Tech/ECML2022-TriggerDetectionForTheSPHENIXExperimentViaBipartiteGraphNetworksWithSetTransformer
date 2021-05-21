@@ -1,0 +1,34 @@
+model_name: GNN_vp
+output_dir: results/GNN_vp/scaled_hits/trigger5
+epochs: 500
+
+model:
+  hidden_dim: 60
+  hidden_activation: Tanh
+  layer_norm: True
+  learning_rate: 0.0005
+  lr_scheduler_decrease_rate: 0.995
+  GNN_config:
+    hidden_dim: 64
+    hidden_activation: Tanh
+    layer_norm: True
+    n_graph_iters: 5
+    # edgenet: False
+
+data:
+    name: hits_loader
+    input_dir: ../prepare/scaled_hits_data/trigger-event
+    # input_dir: ../prepare/scaled_hits_data/nontrigger-event/NN
+    n_train: 20000 
+    n_valid: 2000
+    real_weight: 1
+    false_weight: 1
+    batch_size: 100
+    n_input_dir: 1
+    input_dir2: ../prepare/scaled_hits_data/nontrigger-event/NN
+    input_dir3: ../prepare/hits_data/nontrigger-event/ND
+    random_permutation: True
+    n_train2: 100000 #00
+    n_valid2: 20000 #00
+    n_train3: 2000 #00
+    n_valid3: 200 #00
