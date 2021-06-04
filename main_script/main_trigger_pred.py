@@ -301,19 +301,19 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None, config
     if config['model_name'] == 'GNN_ip':
         from models.ip_GNN import IpGNN
         model = IpGNN(**config['model'])
-    if config['model_name'] == 'GNN_vp':
+    elif config['model_name'] == 'GNN_vp':
         from models.vp_GNN import VpGNN
         model = VpGNN(**config['model'])
-    if config['model_name'] == 'GNN_Diffpool' or config['model_name'] == 'GNN_Diffpool_trackinfo':
+    elif config['model_name'] == 'GNN_Diffpool' or config['model_name'] == 'GNN_Diffpool_trackinfo':
         from models.GNN_diffpool import GNNDiffpool
         model = GNNDiffpool(**config['model'])
-    if config['model_name'] == 'GNNPairDiffpool' or config['model_name'] == 'GNNPairDiffpool_affinityloss':
+    elif config['model_name'] == 'GNNPairDiffpool' or config['model_name'] == 'GNNPairDiffpool_affinityloss':
         from models.GNN_pair_diffpool import GNNPairDiffpool
         model = GNNPairDiffpool(**config['model'])
-    if config['model_name'] == 'Diffpool':
+    elif config['model_name'] == 'Diffpool':
         from models.Diffpool import Diffpool
         model = Diffpool(**config['model'])
-    if config['model_name'] == 'Dense_GNN_Diffpool':
+    elif config['model_name'] == 'Dense_GNN_Diffpool':
         from models.DenseGNNDiffpool import DenseGNNDiffpool
         model = DenseGNNDiffpool(**config['model'])
         
