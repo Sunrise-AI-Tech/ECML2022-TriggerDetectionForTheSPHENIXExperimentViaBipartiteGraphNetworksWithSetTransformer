@@ -55,10 +55,9 @@ def parse_args():
     # argparser.add_argument('--res_dir', default='../experiments/jets_results', help='Results directory')
     # argparser.add_argument('--baseline', default=None, help='Use a baseline and not set2graph. mlp, gnn, siam or siam3.')
 
-    argparser.add_argument('--debug_load', dest='debug_load', action='store_true', help='Load only a small subset of the data')
     argparser.add_argument('--save', dest='save', action='store_true', help='Whether to save all to disk')
     argparser.add_argument('--no_save', dest='save', action='store_false')
-    argparser.set_defaults(save=True, debug_load=False)
+
     
     argparser.add_argument('-v', '--verbose', action='store_true')
     argparser.add_argument('--show-config', action='store_true')
@@ -420,7 +419,7 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None, config
     logging.info(f'Total runtime: {str(datetime.now() - start_time).split(".")[0]}')
 
     if auto:
-        return best_val_acc
+        return best_val_loss
 
     logging.shutdown()
 
