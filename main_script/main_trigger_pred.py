@@ -194,7 +194,7 @@ def do_epoch(phase, data, model, epoch, output_dir=None):
         with torch.set_grad_enabled(phase == 'train'):
             if model.name == 'GNNPairDiffpool':
                 trig_pred, A = model(hits, edge_index, batch.batch, batch_size, hits_to_track, hits_cumsum, n_tracks[0])
-            else 
+            else:
                 trig_pred = model(hits, edge_index, batch.batch, batch_size)
                 trig_pred = trig_pred.squeeze(1)
                 preds.append((trig_pred>0).cpu().data.numpy())

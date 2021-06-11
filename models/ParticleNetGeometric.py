@@ -33,9 +33,9 @@ def make_conv_mlp(input_dim, mlp_dims, activation):
 class ParticleNetGeometric(nn.Module):
     def __init__(
             self,
-            conv_params: Tuple[EdgeConvSpec],
-            mlp_params: Tuple[PredMLPSpec],
-            final_pooling: str,
+            final_pooling,
+            conv_params,
+            mlp_params,
             input_dim: int,
             learning_rate: float
             ):
@@ -62,45 +62,29 @@ class ParticleNetGeometric(nn.Module):
         self._mlp_params = mlp_params
         self._final_pooling = final_pooling
         self.name = 'ParticleNetGeometric'
-        self.optimizer = torch.optim.Adam(params=self.parameters(), lr=learning_rate)
-        def lr_schedule(epoch):
-            if epoch > 10 and epoch <= 20:
-                return 0.1
-            elif epoch > 20 and epoch <= 40:
-                return 0.01
-            elif epoch > 40 and epoch <= 80:
-                return 0.001
-            elif epoch > 80:
-                return 0.0001
-            else:
-                return 1
-
-        self.scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_schedule)
-
 
         edge_convs = []
         prev_dim = input_dim
         for conv_param in conv_params:
-            K, point_indices, mlp_dims, conv_pooling, activation = conv_param
-            conv_mlp = make_conv_mlp(2 * prev_dim, mlp_dims, activation)
+            conv_mlp = make_conv_mlp(2 * prev_dim, conv_param['mlp'], conv_param['activation'])
             edge_convs.append((
                         FilteredDynamicEdgeConv(
                             conv_mlp,
                             prev_dim,
-                            mlp_dims[-1],
-                            K,
-                            point_indices,
-                            conv_pooling,
+                            conv_param['mlp'][-1],
+                            16,
+                            range(1),
+                            conv_param['pooling'],
                             ), 'x, edge_index, batch -> x'
                         )
                     )
             edge_convs.append((
-                gnn.InstanceNorm(mlp_dims[-1]), 
+                gnn.InstanceNorm(conv_param['mlp'][-1]), 
                 'x, batch -> x'
             ))
             edge_convs.append(torch.nn.ReLU(inplace=True))
 
-            prev_dim = mlp_dims[-1]
+            prev_dim = conv_param['mlp'][-1]
         self._edge_convs = gnn.Sequential('x, edge_index, batch -> x', edge_convs)
         self.loss_func = nn.BCELoss()
         self.sigmoid = nn.Sigmoid()
@@ -124,6 +108,23 @@ class ParticleNetGeometric(nn.Module):
                 *edge_convs,
             ]
         )
+
+        self.optimizer = torch.optim.Adam(params=self.parameters(), lr=learning_rate)
+        def lr_schedule(epoch):
+            if epoch > 10 and epoch <= 20:
+                return 0.1
+            elif epoch > 20 and epoch <= 40:
+                return 0.01
+            elif epoch > 40 and epoch <= 80:
+                return 0.001
+            elif epoch > 80:
+                return 0.0001
+            else:
+                return 1
+
+        self.scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_schedule)
+
+
 
 
     def forward(self, x, edge_index, batch):
