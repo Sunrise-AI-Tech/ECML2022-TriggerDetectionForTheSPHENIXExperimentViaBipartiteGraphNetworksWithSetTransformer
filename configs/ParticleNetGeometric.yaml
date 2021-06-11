@@ -1,0 +1,24 @@
+model_name: ParticleNetGeometric
+output_dir: results/ParticleNetGeometric/0/
+epochs: 500
+
+model:
+  aggregation: meanmax
+  conv_fn:
+    - mlp: [32, 32, 32]
+    activation: ReLU
+    - mlp: [64, 64, 64]
+    activation: ReLU
+    - mlp: [128, 128, 128]
+    activation: ReLU
+  mlp: [[32, 0.1], [32, 0.1], [32, 0.1]]
+
+data:
+    name: hitgraphs_sparse
+    n_folders: 2
+    input_dir: /largehome/giorgian/data/parsed_In_Iteration6
+    n_train: 55868
+    n_valid: 13967
+    real_weight: 1
+    batch_size: 128
+    input_dir2: /largehome/giorgian/data/parsed_D0_Iteration6
