@@ -66,7 +66,7 @@ The thing you need to pay attention to is:
     - input_dir and input_dir2 should be the location of your datasets. They will be different on different servers.
     - n_train + n_valid events will be loaded from input_dir, n_train2 + n_valid2 events will be loaded from input_dir2.
     - real_weight and false_weight are designed for a weighted loss function. (weighted binary cross entropy loss)
-    
+
 ## How to run the code?
 You can simply run the code by
 
@@ -113,3 +113,7 @@ If you new model has special inputs and some different information for the loss 
 
 
 
+## Sampler for DataLoader
+In this pipeline, we provided a self-defined samplar class. It is stored in dataloaders/hits_loader.py, JetsBatchSampler Class.
+
+Using this sampler, we can make sure that for each batch, all events can have the same number of hits or tracks. The way to do it is, we can input an array when we initiate the class. The array has the same length as the number of events. The sampler will divide the events into different batch according to this array. It will make sure the events in the same batch will have the same value in this array.

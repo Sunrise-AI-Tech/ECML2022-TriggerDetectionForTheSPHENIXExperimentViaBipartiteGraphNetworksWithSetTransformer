@@ -21,7 +21,7 @@ model:
 
 data:
     name: hits_loader
-    input_dir: ../prepare/scaled_hits_data/trigger-event
+    input_dir: /home/tingting/prepare/scaled_hits_data/trigger-event
     # input_dir: ../prepare/scaled_hits_data/nontrigger-event/NN
     n_train: 200000 # 000 
     n_valid: 10000 # 00
@@ -29,7 +29,7 @@ data:
     false_weight: 1
     batch_size: 100
     n_input_dir: 2
-    input_dir2: ../prepare/scaled_hits_data/nontrigger-event/NN
+    input_dir2: /home/tingting/prepare/scaled_hits_data/nontrigger-event/NN
     # input_dir3: ../prepare/hits_data/nontrigger-event/ND
     random_permutation: True
     n_train2: 200000 # 000 #00
