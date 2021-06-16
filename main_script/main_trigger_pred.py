@@ -193,35 +193,34 @@ def do_epoch(phase, data, model, epoch, output_dir=None):
 
         with torch.set_grad_enabled(phase == 'train'):
             if model.name == 'GNNPairDiffpool':
-                ip_pred, A = model(hits, edge_index, batch.batch, batch_size, hits_to_track, hits_cumsum, n_tracks[0])
+                trig_pred, A = model(hits, edge_index, batch.batch, batch_size, hits_to_track, hits_cumsum, n_tracks[0])
             else:
-                ip_pred = model(hits, edge_index, batch.batch, batch_size)
-            ip_pred = ip_pred.squeeze(1)
-            preds.append((ip_pred>0).cpu().data.numpy())
-            hits_trigger = (vtx[track_cumsum[batch.batch]+hits_to_track,:]==ip[batch.batch]).all(axis=1).long()     
+                trig_pred = model(hits, edge_index, batch.batch, batch_size)
+                trig_pred = trig_pred.squeeze(1)
+                preds.append((trig_pred>0).cpu().data.numpy())
+            hits_trigger = (vtx[track_cumsum[batch.batch]+hits_to_track,:]==ip[batch.batch]).all(axis=1).long()
             if phase == 'train':
                 if model.name == 'GNNDiffpool' and model.mid_loss:
-                    loss = model.train_model(ip_pred, trig, model.ip_pred_diffpool.intermediate_result[0].view(-1, 2), hits_trigger)
+                    loss = model.train_model(trig_pred, trig, model.ip_pred_diffpool.intermediate_result[0].view(-1, 2), hits_trigger)
                 elif model.name == 'GNNPairDiffpool' and model.affinity_loss:
                     partitions_as_graph = batch.partition_as_graph
                     partitions_as_graph = partitions_as_graph.view(batch_size, n_tracks[0], n_tracks[0])
                     partitions_as_graph = partitions_as_graph.to(DEVICE, torch.float)
                     vtx = vtx.view(batch_size, n_tracks[0], 3)
-                    loss = model.train_model(ip_pred, trig, A, partitions_as_graph, vtx)
+                    loss = model.train_model(trig_pred, trig, A, partitions_as_graph, vtx)
                 else:
-                    loss = model.train_model(ip_pred, trig)
+                    loss = model.train_model(trig_pred, trig)
             else:
                 if model.name == 'GNNDiffpool' and model.mid_loss:
-                    loss = model.get_loss(ip_pred, trig, model.ip_pred_diffpool.intermediate_result[0].view(-1, 2), hits_trigger)
+                    loss = model.get_loss(trig_pred, trig, model.ip_pred_diffpool.intermediate_result[0].view(-1, 2), hits_trigger)
                 elif model.name == 'GNNPairDiffpool' and model.affinity_loss:
                     partitions_as_graph = batch.partition_as_graph
                     partitions_as_graph = partitions_as_graph.view(batch_size, n_tracks[0], n_tracks[0])
                     partitions_as_graph = partitions_as_graph.to(DEVICE, torch.float)
                     vtx = vtx.view(batch_size, n_tracks[0], 3)
-                    loss = model.get_loss(ip_pred, trig, A, partitions_as_graph, vtx)
+                    loss = model.get_loss(trig_pred, trig, A, partitions_as_graph, vtx)
                 else:
-                    loss = model.get_loss(ip_pred, trig)
-                
+                    loss = model.get_loss(trig_pred, trig)
 
         # update results from train_step func
         accum_info['loss'] += loss.item() * batch_size
@@ -315,7 +314,10 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None, config
     elif config['model_name'] == 'Dense_GNN_Diffpool':
         from models.DenseGNNDiffpool import DenseGNNDiffpool
         model = DenseGNNDiffpool(**config['model'])
-        
+    elif config['model_name'] == 'ParticleNetGeometric':
+        from models.ParticleNetGeometric import ParticleNetGeometric
+        model = ParticleNetGeometric(**config['model'])
+
     
     print_model_summary(model)
     model = model.to(DEVICE)
