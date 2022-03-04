@@ -1,0 +1,66 @@
+output_dir: train_results/pns/
+tensorboard_output_dir: runs/pns/
+
+epochs: 100
+checkpoint_file_pnl: 'train_results/cached_models/pns/model_checkpoint_131.pth.tar'
+threshold: 1.0
+
+optimizer:
+  type: Adam
+  momentum: 0.9
+  learning_rate: 0.0001
+  weight_decay: 0.0001
+
+adj_model:
+  type: particlenet-laplace
+  k: 15
+  hidden_dim: 20
+  hidden_activation: Tanh
+  layer_norm: True
+  affinity_loss: True
+  affinity_loss_CE_weight: 1
+  affinity_loss_Lp_weight: 0.000001
+  affinity_loss_11_weight: 0.000001
+  affinity_loss_frobenius_weight: 0.000001
+  d_metric: intertrack #einsum
+  GNN_config:
+    hidden_dim: 64
+    hidden_activation: Tanh
+    layer_norm: True
+    n_graph_iters: 3
+
+model:
+  is_hierarchical: True
+  num_features: 79 # particlenet + raw track features
+  nhid: 256
+  num_classes: 2
+  pooling_ratio: 0.75
+  dropout_ratio: 0.7
+  use_edge_attr: True
+
+contrast:
+    end_epoch: 0
+    aug1: TrackHitDropping
+    aug1_param: [0.05, 0.05, 0.1, 0.1]
+    aug2: BackgroundTrackDropping
+    aug2_param: 0.2
+    ce_weight: 10
+    use_extra_pos: True
+    loss:
+        temperature: 0.8
+
+data:
+        name: trkvec
+        input_dir: /largehome/giorgian/data/parsed_noempty_trkvec/Background/
+        input_dir2: /largehome/giorgian/data/parsed_noempty_trkvec/Signal/
+        use_radius: True
+        use_momentum: False
+        use_energy: False
+        n_train: 541 #693
+        n_valid: 135 #433
+        batch_size: 32
+        n_workers: 4
+        n_folders: 2
+        n_workers: 4
+        n_folders: 2
+        load_complete_graph: False

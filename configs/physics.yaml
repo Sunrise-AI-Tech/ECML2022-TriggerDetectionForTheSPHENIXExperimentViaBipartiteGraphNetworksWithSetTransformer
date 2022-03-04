@@ -1,0 +1,55 @@
+output_dir: train_results/physics/
+tensorboard_output_dir: runs/physics/
+
+epochs: 100
+checkpoint_file_pnl: 'train_results/cached_models/pns/model_checkpoint_131.pth.tar'
+threshold: 0.5
+
+optimizer:
+  type: SGD
+  momentum: 0.9
+  learning_rate: 0.0001
+  weight_decay: 0.0001
+
+adj_model:
+  type: particlenet-laplace
+  k: 15 
+  hidden_dim: 20
+  hidden_activation: Tanh
+  layer_norm: True
+  affinity_loss: True
+  affinity_loss_CE_weight: 1
+  affinity_loss_Lp_weight: 0.000001
+  affinity_loss_11_weight: 0.000001
+  affinity_loss_frobenius_weight: 0.000001
+  d_metric: intertrack #einsum
+  GNN_config:
+    hidden_dim: 64
+    hidden_activation: Tanh
+    layer_norm: True
+    n_graph_iters: 3
+
+model:
+  type: HitsLSTM
+  n_features: 67 # particlenet + single hit
+  n_hidden: 4
+  hidden_size: 256
+  hidden_activation: ReLU
+
+loss:
+  type: mse
+
+data:
+        name: trkvec
+        input_dir: /largehome/giorgian/data/parsed_noempty_trkvec/Background/
+        input_dir2: /largehome/giorgian/data/parsed_noempty_trkvec/Signal/
+        use_momentum: True
+        use_energy: False
+        n_train: 541693
+        n_valid: 135433
+        batch_size: 32
+        n_workers: 4
+        n_folders: 2
+        n_workers: 4
+        n_folders: 2
+        load_complete_graph: False

@@ -1,0 +1,36 @@
+output_dir: train_results/set/
+tensorboard_output_dir: runs/set/
+
+name_on_wandb: transset
+
+epochs: 50
+
+optimizer:
+  type: Adam
+  momentum: 0.9
+  learning_rate: 0.0001
+  weight_decay: 0.0001
+
+model:
+  dim_input: 28
+  num_outputs: 1
+  dim_output: 2
+  num_inds: 32
+  dim_hidden: 256
+  num_heads: 4
+  ln: True
+
+data:
+        name: trkvec_predicted
+        input_dir: /home1/tingtingxuan/Data/predicted_track_7layer_with_momentum_large/trigger
+        input_dir2: /home1/tingtingxuan/Data/predicted_track_7layer_with_momentum_large/non-trigger
+        use_radius: True
+        use_momentum: False
+        use_energy: False
+        n_train: 500000 #693
+        n_valid: 100000 #433
+        batch_size: 32
+        n_workers: 8
+        n_folders: 2
+        n_folders: 2
+        load_complete_graph: False
