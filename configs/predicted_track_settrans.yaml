@@ -3,7 +3,7 @@ tensorboard_output_dir: runs/set/
 
 name_on_wandb: transset
 
-epochs: 50
+epochs: 30
 
 optimizer:
   type: Adam
@@ -16,7 +16,7 @@ model:
   num_outputs: 1
   dim_output: 2
   num_inds: 32
-  dim_hidden: 1024
+  dim_hidden: 128
   num_heads: 4
   ln: False
 
@@ -27,6 +27,7 @@ data:
         use_radius: False
         use_momentum: True
         use_energy: False
+        momentum_disturb: 0.3
         n_train: 500000 #693
         n_valid: 100000 #433
         batch_size: 32

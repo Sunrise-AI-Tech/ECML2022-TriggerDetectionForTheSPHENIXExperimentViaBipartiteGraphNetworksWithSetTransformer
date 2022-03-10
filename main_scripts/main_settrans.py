@@ -127,18 +127,18 @@ def extract_hyperparameters(config):
 
 
 
-def train(data, model_pnl, model, optimizer, epoch, output_dir, use_wandb=False, ce_weight=1, use_extra_pos=True, use_energy=False, use_momentum=False, use_radius=False):
-    train_info = do_epoch(data, model_pnl, model, epoch, optimizer, ce_weight=ce_weight, use_extra_pos=use_extra_pos, use_energy=use_energy, use_momentum=use_momentum, use_radius=use_radius)
+def train(data, model_pnl, model, optimizer, epoch, output_dir, use_wandb=False, ce_weight=1, use_extra_pos=True, use_energy=False, use_momentum=False, use_radius=False, momentum_disturb=0):
+    train_info = do_epoch(data, model_pnl, model, epoch, optimizer, ce_weight=ce_weight, use_extra_pos=use_extra_pos, use_energy=use_energy, use_momentum=use_momentum, use_radius=use_radius, momentum_disturb=momentum_disturb)
     write_checkpoint(checkpoint_id=epoch, model=model, optimizer=optimizer, output_dir=output_dir)
     return train_info
 
-def evaluate(data, model_pnl, model, epoch, loss_config=None, use_momentum=False, use_energy=False, use_radius=False):
+def evaluate(data, model_pnl, model, epoch, loss_config=None, use_momentum=False, use_energy=False, use_radius=False, momentum_disturb=0):
     with torch.no_grad():
-        val_info = do_epoch(data, model_pnl, model, epoch, optimizer=None, use_energy=use_energy, use_momentum=use_momentum, use_radius=use_radius)
+        val_info = do_epoch(data, model_pnl, model, epoch, optimizer=None, use_energy=use_energy, use_momentum=use_momentum, use_radius=use_radius, momentum_disturb=momentum_disturb)
     return val_info
 
 
-def do_epoch(data, model_pnl, model, epoch, optimizer=None, ce_weight=1, use_extra_pos=True, use_energy=False, use_momentum=False, use_radius=False):
+def do_epoch(data, model_pnl, model, epoch, optimizer=None, ce_weight=1, use_extra_pos=True, use_energy=False, use_momentum=False, use_radius=False, momentum_disturb=0):
     # global writer
     if optimizer is None:
         # validation epoch
@@ -185,7 +185,12 @@ def do_epoch(data, model_pnl, model, epoch, optimizer=None, ce_weight=1, use_ext
             energy = energy.to(tracks.dtype)
             tracks = torch.cat((tracks, energy), dim=-1)
         if use_momentum:
-            momentum = np.sqrt(momentum[:, :, 0]**2 + momentum[:, :, 1]**2)
+            momentum = torch.sqrt(momentum[:, :, 0]**2 + momentum[:, :, 1]**2)
+            # print('original: ', momentum)
+            momentum = momentum * (1 + np.random.normal(0, momentum_disturb, momentum.shape))
+            relu = nn.ReLU()
+            momentum = relu(momentum) # must be positive
+            # print('disturbed: ', momentum)
             momentum = momentum.to(DEVICE)
             momentum = momentum.to(tracks.dtype)
             momentum = momentum.unsqueeze(-1)
@@ -287,7 +292,7 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
     save_config(config)
     # os.environ['CUDA_LAUNCH_BLOCKING'] = "1"  # uncomment only for CUDA error debugging
     # os.environ["CUDA_VISIBLE_DEVICES"] = config.gpu
-    name = config['name_on_wandb'] + f"-nhead{config['model']['num_heads']}-hid_d{config['model']['dim_hidden']}-use_radius{config['data']['use_radius']}-use_momentum{config['data']['use_momentum']}-ln{config['model']['ln']}-ntrain{config['data']['n_train']}*2-lr{config['optimizer']['learning_rate']}"
+    name = config['name_on_wandb'] + f"-nhead{config['model']['num_heads']}-hid_d{config['model']['dim_hidden']}-use_radius{config['data']['use_radius']}-use_momentum{config['data']['use_momentum']}-momentum_disturb{config['data']['momentum_disturb']}-ln{config['model']['ln']}-ntrain{config['data']['n_train']}*2-lr{config['optimizer']['learning_rate']}-{config['optimizer']['type']}"
     if args.use_wandb:
         wandb.init(
             project=f'{args.wandb}', 
@@ -308,6 +313,7 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
         del dconfig['use_momentum']
         del dconfig['use_energy']
         del dconfig['use_radius']
+        del dconfig['momentum_disturb']
 
         train_data, val_data = get_data_loaders(**dconfig)
         logging.info('Loaded %g training samples', len(train_data.dataset))
@@ -343,16 +349,16 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
 
 
     def lr_schedule(epoch):
-            if epoch > 10 and epoch <= 20:
-                return 0.1
-            elif epoch > 20 and epoch <= 40:
-                return 0.01
-            elif epoch > 40 and epoch <= 80:
-                return 0.001
-            elif epoch > 80:
-                return 0.0001
-            else:
-                return 1
+        if epoch > 10 and epoch <= 20:
+            return 0.1
+        elif epoch > 20 and epoch <= 40:
+            return 0.01
+        elif epoch > 40 and epoch <= 80:
+            return 0.001
+        elif epoch > 80:
+            return 0.0001
+        else:
+            return 1
 
     lr_scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_schedule)
 
@@ -377,7 +383,7 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
         ce_weight = 1
         train_info = train(train_data, model_pnl, model, optimizer, epoch, config['output_dir'], ce_weight=ce_weight,
                 use_energy=config['data']['use_energy'], use_momentum=config['data']['use_momentum'],
-                use_radius=config['data']['use_radius']
+                use_radius=config['data']['use_radius'], momentum_disturb=config['data']['momentum_disturb']
                 )
         table = make_table(
             ('Total loss', f"{train_info['loss']:.6f}"),
@@ -411,7 +417,7 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
 
         val_info = evaluate(val_data, model_pnl, model, epoch,
                 use_energy=config['data']['use_energy'], use_momentum=config['data']['use_momentum'],
-                use_radius=config['data']['use_radius']
+                use_radius=config['data']['use_radius'], momentum_disturb=config['data']['momentum_disturb']
                 )
         table = make_table(
             ('Total loss', f"{val_info['loss']:.6f}"),
