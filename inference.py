@@ -43,8 +43,8 @@ print('Successfully reloaded!')
 test_dir1 = '/home1/tingtingxuan/Data/predicted_track_7layer_with_momentum_large/non-trigger'
 test_dir2 = '/home1/tingtingxuan/Data/predicted_track_7layer_with_momentum_large/trigger'
 #test_dir1 = os.path.expandvars('physics_data/trigger_event')
-test_samples1 = 9900 * 20
-test_samples2 = 100 * 20
+test_samples1 = 3
+test_samples2 = 3
 # test_samples1 = 10000
 # test_samples2 = 10000
 batch_size = 32

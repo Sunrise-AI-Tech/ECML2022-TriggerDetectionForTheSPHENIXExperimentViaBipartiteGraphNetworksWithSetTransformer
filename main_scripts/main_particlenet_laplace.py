@@ -40,7 +40,7 @@ class ArgDict:
     pass
 
 writer = None
-DEVICE = 'cuda:1'
+DEVICE = 'cuda'
 def parse_args():
     """
     Define and retrieve command line arguements

@@ -185,6 +185,7 @@ def do_epoch(data, model_pnl, model, epoch, optimizer=None, ce_weight=1, use_ext
             energy = energy.to(tracks.dtype)
             tracks = torch.cat((tracks, energy), dim=-1)
         if use_momentum:
+            momentum = np.sqrt(momentum[:, :, 0]**2 + momentum[:, :, 1]**2)
             momentum = momentum.to(DEVICE)
             momentum = momentum.to(tracks.dtype)
             momentum = momentum.unsqueeze(-1)
@@ -286,7 +287,7 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
     save_config(config)
     # os.environ['CUDA_LAUNCH_BLOCKING'] = "1"  # uncomment only for CUDA error debugging
     # os.environ["CUDA_VISIBLE_DEVICES"] = config.gpu
-    name = config['name_on_wandb'] + f"-nhead{config['model']['num_heads']}-hid_d{config['model']['dim_hidden']}-use_radius{config['data']['use_radius']}-ln{config['model']['ln']}-ntrain{config['data']['n_train']}*2-lr{config['optimizer']['learning_rate']}"
+    name = config['name_on_wandb'] + f"-nhead{config['model']['num_heads']}-hid_d{config['model']['dim_hidden']}-use_radius{config['data']['use_radius']}-use_momentum{config['data']['use_momentum']}-ln{config['model']['ln']}-ntrain{config['data']['n_train']}*2-lr{config['optimizer']['learning_rate']}"
     if args.use_wandb:
         wandb.init(
             project=f'{args.wandb}', 
@@ -319,7 +320,7 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
 
     # mconfig = copy.copy(config['model'])
     # mconfig['num_features'] += 3*config['data']['use_energy'] + config['data']['use_momentum'] + config['data']['use_radius'] - 64
-    config['model']['dim_input'] += config['data']['use_radius']
+    config['model']['dim_input'] += config['data']['use_radius'] + config['data']['use_momentum']
     model = SetTransformer(
         **config['model']
     )
