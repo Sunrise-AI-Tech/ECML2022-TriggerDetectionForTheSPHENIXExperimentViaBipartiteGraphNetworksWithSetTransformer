@@ -1,9 +1,9 @@
 output_dir: train_results/set/
 tensorboard_output_dir: runs/set/
 
-name_on_wandb: transset
+name_on_wandb: transset-gttrack
 
-epochs: 5000
+epochs: 50
 
 optimizer:
   type: Adam
@@ -12,7 +12,7 @@ optimizer:
   weight_decay: 0.0001
 
 model:
-  dim_input: 28
+  dim_input: 15
   num_outputs: 1
   dim_output: 2
   num_inds: 32
@@ -21,9 +21,9 @@ model:
   ln: False
 
 data:
-        name: trkvec_predicted
-        input_dir: /home1/tingtingxuan/Data/predicted_track_7layer_with_momentum_large/trigger
-        input_dir2: /home1/tingtingxuan/Data/predicted_track_7layer_with_momentum_large/non-trigger
+        name: trkvec
+        input_dir: /home1/tingtingxuan/Data/parsed_trackvec/Signal
+        input_dir2: /home1/tingtingxuan/Data/parsed_trackvec/Background
         use_radius: True
         use_momentum: False
         use_energy: False
@@ -31,8 +31,9 @@ data:
         radius_disturb: 0
         n_train: 500000 #693
         n_valid: 100000 #433
-        batch_size: 16
+        batch_size: 32
         n_workers: 8
         n_folders: 2
         n_folders: 2
         load_complete_graph: False
+        add_geo_features: False

@@ -1,10 +1,9 @@
-output_dir: train_results/set/
-tensorboard_output_dir: runs/set/
+output_dir: train_results/garnet/
+tensorboard_output_dir: runs/garnet/
 
-name_on_wandb: transset
+name_on_wandb: garnet
 
-epochs: 5000
-
+epochs: 100
 optimizer:
   type: Adam
   momentum: 0.9
@@ -12,23 +11,19 @@ optimizer:
   weight_decay: 0.0001
 
 model:
-  dim_input: 28
-  num_outputs: 1
-  dim_output: 2
-  num_inds: 32
-  dim_hidden: 128
-  num_heads: 4
-  ln: False
+  num_features: 28 # raw track features
+  layers_spec: [[64, 8], [128, 16], [64, 8]]
+  num_classes: 2
 
 data:
         name: trkvec_predicted
         input_dir: /home1/tingtingxuan/Data/predicted_track_7layer_with_momentum_large/trigger
         input_dir2: /home1/tingtingxuan/Data/predicted_track_7layer_with_momentum_large/non-trigger
-        use_radius: True
+        use_radius: False
         use_momentum: False
         use_energy: False
-        momentum_disturb: 0
-        radius_disturb: 0
+        # momentum_disturb: 0
+        # radius_disturb: 0
         n_train: 500000 #693
         n_valid: 100000 #433
         batch_size: 16

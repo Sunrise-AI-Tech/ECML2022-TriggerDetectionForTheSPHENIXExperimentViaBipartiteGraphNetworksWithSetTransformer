@@ -1,0 +1,32 @@
+output_dir: train_results/garnet/
+tensorboard_output_dir: runs/garnet/
+
+name_on_wandb: garnet-gttrack
+
+epochs: 100
+optimizer:
+  type: Adam
+  momentum: 0.9
+  learning_rate: 0.0001
+  weight_decay: 0.0001
+
+model:
+  num_features: 28 # raw track features
+  layers_spec: [[64, 8], [128, 16], [64, 8]]
+  num_classes: 2
+
+data:
+        name: trkvec
+        input_dir: /home1/tingtingxuan/Data/parsed_trackvec/Signal
+        input_dir2: /home1/tingtingxuan/Data/parsed_trackvec/Background
+        use_radius: False
+        use_momentum: True
+        use_energy: False
+        n_train: 500000 #693
+        n_valid: 100000 #433
+        batch_size: 32
+        n_workers: 8
+        n_folders: 2
+        n_folders: 2
+        load_complete_graph: False
+        add_geo_features: True
