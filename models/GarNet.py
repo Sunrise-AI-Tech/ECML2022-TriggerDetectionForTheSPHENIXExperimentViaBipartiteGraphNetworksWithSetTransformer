@@ -27,7 +27,7 @@ class GarNet(nn.Module):
         super(GarNet, self).__init__()
         garnet_layers = []
         prev_dim = num_features
-        self.aggregator_activation = aggregator_activation
+        
         for feature_dim, n_aggregators in layers_spec:
             garnet_layers.append(
                     GarNetLayer(
@@ -35,6 +35,7 @@ class GarNet(nn.Module):
                         feature_dim,
                         n_aggregators,
                         hidden_activation,
+                        aggregator_activation,
                     )
             )
             prev_dim = feature_dim 
@@ -63,8 +64,10 @@ class GarNetLayer(nn.Module):
         feature_dim,
         n_aggregators,
         hidden_activation,
+        aggregator_activation
     ):
         super(GarNetLayer, self).__init__()
+        self.aggregator_activation = aggregator_activation
         self.transform_in = nn.Linear(input_dim, feature_dim + n_aggregators)
         self.transform_out = nn.Sequential(
                 nn.Linear(2*feature_dim*n_aggregators + input_dim, feature_dim),

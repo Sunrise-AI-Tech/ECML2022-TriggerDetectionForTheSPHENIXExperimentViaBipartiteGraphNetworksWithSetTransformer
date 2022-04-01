@@ -19,7 +19,6 @@ model:
   dim_hidden: 128
   num_heads: 4
   ln: False
-  aggregator_activation: ReLU
 
 data:
         name: trkvec_predicted

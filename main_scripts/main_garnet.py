@@ -260,7 +260,8 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
     # os.environ["CUDA_VISIBLE_DEVICES"] = config.gpu
     torch.cuda.set_device(int(args.gpu))
 
-    name = config['name_on_wandb'] + f"-n_hid{config['model']['num_features']}-use_radius{config['data']['use_radius']}-use_momentum{config['data']['use_momentum']}-ntrain{config['data']['n_train']}*2-lr{config['optimizer']['learning_rate']}-{config['optimizer']['type']}-b{config['data']['batch_size']}"
+    name = config['name_on_wandb'] + f"-n_hid{config['model']['num_features']}-agg_activation{config['model']['aggregator_activation']}-use_radius{config['data']['use_radius']}-use_momentum{config['data']['use_momentum']}-ntrain{config['data']['n_train']}*2-lr{config['optimizer']['learning_rate']}-{config['optimizer']['type']}-b{config['data']['batch_size']}"
+    logging.info(name)
     if args.use_wandb:
         wandb.init(
             project=f'{args.wandb}', 
