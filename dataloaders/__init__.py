@@ -24,6 +24,9 @@ def get_data_loaders(name, batch_size, distributed=False,
     elif name == 'trkvec':
         from . import trkvec_sampler
         return trkvec_sampler.get_data_loaders(name, batch_size, **data_args)
+    elif name == 'trkvec-ecml':
+        from . import trkvec_ecml
+        return trkvec_ecml.get_data_loaders(name, batch_size, **data_args)
     elif name == 'trkvec_predicted':
         from . import predicted_trkvec
         return predicted_trkvec.get_data_loaders(name, batch_size, **data_args)
