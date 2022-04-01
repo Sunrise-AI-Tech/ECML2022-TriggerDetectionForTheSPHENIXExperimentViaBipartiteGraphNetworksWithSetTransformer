@@ -36,7 +36,9 @@ TEST*.xml
 Thumbs.db
 
 # Applications
-*.app
+*.pth.tar
+train_results/tmp/
+runs/tmp/
 *.exe
 *.war
 
@@ -47,4 +49,5 @@ Thumbs.db
 *.flv
 *.mov
 *.wmv
+*.path.tar
 

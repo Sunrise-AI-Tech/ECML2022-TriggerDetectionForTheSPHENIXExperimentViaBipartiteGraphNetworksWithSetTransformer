@@ -40,7 +40,7 @@ from utils.log import write_checkpoint, load_config, load_checkpoint, config_log
 from torch.utils.tensorboard import SummaryWriter
 from sklearn.metrics import r2_score
 
-DEVICE = 'cuda'
+DEVICE = 'cuda:1'
 OLD_COLUMNS = None
 
 def parse_args():
@@ -75,28 +75,21 @@ def parse_args():
 
 def extract_hyperparameters(config):
     hp = {}
-    hp['checkpoint_file_pnl'] = config['checkpoint_file_pnl']
     hp['type/optimizer'] = config['optimizer']['type']
     hp['momentum/optimizer'] = config['optimizer']['momentum']
     hp['weight_decay/optimizer'] = config['optimizer']['weight_decay']
     hp['learning_rate/optimizer'] = config['optimizer']['learning_rate']
-    hp['type/adj_model'] = config['adj_model']['type']
-    hp['hidden_dim/adj_model'] = config['adj_model']['hidden_dim']
-    hp['hidden_activation/adj_model'] = config['adj_model']['hidden_activation']
-    hp['layer_norm/adj_model'] = config['adj_model']['layer_norm']
-    hp['d_metric/adj_model'] = config['adj_model']['d_metric']
-    hp['k/adj_model'] = config['adj_model']['k']
-    hp['hidden_dim/GNN_config/adj_model'] = config['adj_model']['GNN_config']['hidden_dim']
-    hp['hidden_activation/GNN_config/adj_model'] = config['adj_model']['GNN_config']['hidden_activation']
-    hp['layer_norm/GNN_config/adj_model'] = config['adj_model']['GNN_config']['layer_norm']
-    hp['n_graph_iters/GNN_config/adj_model'] = config['adj_model']['GNN_config']['n_graph_iters']
     hp['name/data'] = config['data']['name']
     hp['n_train/data'] = config['data']['n_train']
     hp['n_valid/data'] = config['data']['n_valid']
+    hp['n_test/data'] = config['data']['n_valid']
     hp['batch_size/data'] = config['data']['batch_size']
     hp['load_complete_graph/data'] = config['data']['load_complete_graph']
+    hp['add_geo_features/data'] = config['data']['add_geo_features']
     hp['use_momentum/data'] = config['data']['use_momentum']
     hp['use_energy/data'] = config['data']['use_energy']
+    hp['use_pt/data'] = config['data']['use_pt']
+    hp['use_radius/data'] = config['data']['use_radius']
 
     hp['type/model'] = config['model']['type']
     hp['n_features/model'] = config['model']['n_features']
@@ -107,19 +100,18 @@ def extract_hyperparameters(config):
 
     return hp
 
-
-def train(data, model_pnl, model, optimizer, epoch, output_dir, threshold = 0.5, loss='mse', use_energy=False, use_momentum=True):
-    train_info = do_epoch(data, model_pnl, model, epoch, optimizer, threshold = threshold, loss=loss, use_energy=use_energy, use_momentum=use_momentum) 
+def train(data, model, optimizer, epoch, output_dir, loss='mse', use_energy=False, use_momentum=False, use_pt=True, use_radius=False):
+    train_info = do_epoch(data, model, epoch, optimizer, loss=loss, use_energy=use_energy, use_momentum=use_momentum, use_pt=use_pt, use_radius=use_radius) 
     write_checkpoint(checkpoint_id=epoch, model=model, optimizer=optimizer, output_dir=output_dir)
     return train_info
 
-def evaluate(data, model_pnl, model, epoch, threshold=0.5, loss='mse', use_energy=False, use_momentum=True):
+def evaluate(data, model, epoch, loss='mse', use_energy=False, use_momentum=False, use_pt=True, use_radius=False):
     with torch.no_grad():
-        val_info = do_epoch(data, model_pnl, model, epoch, optimizer=None, threshold=threshold, loss=loss, use_energy=use_energy, use_momentum=use_momentum) 
+        val_info = do_epoch(data, model, epoch, optimizer=None, use_energy=use_energy, use_momentum=use_momentum, use_pt=use_pt, use_radius=use_radius) 
     return val_info
 
 
-def do_epoch(data, model_pnl, model, epoch, optimizer=None, threshold = 0.5, loss='mse', use_energy=False, use_momentum=True):
+def do_epoch(data, model, epoch, optimizer=None, loss='mse', use_energy=False, use_momentum=False, use_pt=True, use_radius=False):
     global writer
     if optimizer is None:
         # validation epoch
@@ -136,7 +128,6 @@ def do_epoch(data, model_pnl, model, epoch, optimizer=None, threshold = 0.5, los
         loss_fn = nn.MAELoss()
     else:
         raise NotImplementedError(f'Loss function of type {loss} not implemented.')
-
 
     start_time = datetime.now()
 
@@ -160,7 +151,19 @@ def do_epoch(data, model_pnl, model, epoch, optimizer=None, threshold = 0.5, los
         'e_z_r2',
         'p_mse', 
         'p_mae',
-        'p_r2'
+        'p_r2',
+        'p_x_mse', 
+        'p_x_mae',
+        'p_x_r2',
+        'p_y_mse', 
+        'p_y_mae',
+        'p_y_r2',
+        'p_z_mse', 
+        'p_z_mae',
+        'p_z_r2',
+        'p_t_mae',
+        'p_t_mse',
+        'p_t_r2'
     )}
 
     num_insts = 0
@@ -169,28 +172,18 @@ def do_epoch(data, model_pnl, model, epoch, optimizer=None, threshold = 0.5, los
     correct = []
     
     for batch in data:
-        tracks, _, _, _, _, energy, momentum, _ = batch
-        tracks = tracks.to(DEVICE, torch.float).transpose(-1, -2)
+        tracks, _, _, _, _, energy, momentum, _, radii = batch
+        tracks = tracks.to(DEVICE, torch.float)
+        radii = radii.to(DEVICE, torch.float)
         batch_size = tracks.shape[0]        
         energy = energy.to(DEVICE)
         momentum = momentum.to(DEVICE)
 
         num_insts += batch_size
         
-
-        if tracks.shape[0] == 1:
-            skipped_batches += 1
-            try:
-                pred_x, _ = model_pnl(tracks)
-            except ValueError:
-                continue
-        else:
-            pred_x, _ = model_pnl(tracks)
- 
-        pred_x = pred_x.transpose(2, 1)
-        tracks = tracks.transpose(2, 1)
-        tracks = torch.cat((tracks, pred_x), dim=-1)
-
+        if use_radius:
+            tracks = torch.cat((tracks, radii), dim=-1)
+        
         physics_pred = model(tracks)
         pp = physics_pred.detach().cpu().numpy()
         pp = np.reshape(pp, (-1, pp.shape[-1]))
@@ -198,40 +191,57 @@ def do_epoch(data, model_pnl, model, epoch, optimizer=None, threshold = 0.5, los
 
         energy = energy.to(tracks.dtype)
         momentum = momentum.to(tracks.dtype)
-        momentum = momentum.unsqueeze(-1)
-        if use_energy and use_momentum:
-            physics_true = torch.cat((energy, momentum), dim=-1)
-        elif use_energy:
-            physics_true = energy
-        elif use_momentum:
-            physics_true = momentum
+        pts = torch.sqrt(torch.sum(momentum[..., :2]**2, dim=-1)).unsqueeze(-1)
 
+        gts = []
+        if use_energy:
+            gts.append(energy)
+        if use_momentum:
+            gts.append(momentum)
+        if use_pt:
+            gts.append(pts)
+            
+        physics_true = torch.cat(gts, dim=-1)
         pt = physics_true.detach().cpu().numpy()
         pt = np.reshape(pt, (-1, pt.shape[-1]))
         correct.extend(pt)
+
+        index = 0
+        losses = []
+        if use_energy:
+            pp = physics_pred[..., index:index+3]
+            pt = physics_true[..., index:index+3]
+            accum_info['e_mse'] += torch.sum((pp[..., 0:3] - pt[..., 0:3])**2).item()
+            accum_info['e_mae'] += torch.sum(torch.abs(pp[..., 0:3] - pt[..., 0:3])).item()
+            accum_info['e_x_mse'] += torch.sum((pp[..., 0] - pt[..., 0])**2).item()
+            accum_info['e_x_mae'] += torch.sum(torch.abs(pp[..., 0] - pt[..., 0])).item()
+            accum_info['e_y_mse'] += torch.sum((pp[..., 1] - pt[..., 1])**2).item()
+            accum_info['e_y_mae'] += torch.sum(torch.abs(pp[..., 1] - pt[..., 1])).item()
+            accum_info['e_z_mse'] += torch.sum((pp[..., 2] - pt[..., 2])**2).item()
+            accum_info['e_z_mae'] += torch.sum(torch.abs(pp[..., 2] - pt[..., 2])).item()
+            index += 3
+        if use_momentum:
+            pp = physics_pred[..., index:index+3]
+            pt = physics_true[..., index:index+3]
+            accum_info['p_mse'] += torch.sum((pp[..., 0:3] - pt[..., 0:3])**2).item()
+            accum_info['p_mae'] += torch.sum(torch.abs(pp[..., 0:3] - pt[..., 0:3])).item()
+            accum_info['p_x_mse'] += torch.sum((pp[..., 0] - pt[..., 0])**2).item()
+            accum_info['p_x_mae'] += torch.sum(torch.abs(pp[..., 0] - pt[..., 0])).item()
+            accum_info['p_y_mse'] += torch.sum((pp[..., 1] - pt[..., 1])**2).item()
+            accum_info['p_y_mae'] += torch.sum(torch.abs(pp[..., 1] - pt[..., 1])).item()
+            accum_info['p_z_mse'] += torch.sum((pp[..., 2] - pt[..., 2])**2).item()
+            accum_info['p_z_mae'] += torch.sum(torch.abs(pp[..., 2] - pt[..., 2])).item()
+            index += 3
+        if use_pt:
+            pp = physics_pred[..., index:index+3]
+            pt = physics_true[..., index:index+3]
+            accum_info['p_t_mse'] += torch.sum((pp[..., 0] - pt[..., 0])**2).item()
+            accum_info['p_t_mae'] += torch.sum(torch.abs(pp[..., 0] - pt[..., 0])).item()
 
         loss = loss_fn(physics_pred, physics_true)
         accum_info['loss'] += loss.item() * batch_size
         accum_info['mse'] += torch.sum((physics_pred - physics_true)**2).item()
         accum_info['mae'] += torch.sum((physics_pred - physics_true)).item()
-        if use_energy:
-            accum_info['e_mse'] += torch.sum((physics_pred[..., 0:3] - physics_true[..., 0:3])**2).item()
-            accum_info['e_mae'] += torch.sum(torch.abs(physics_pred[..., 0:3] - physics_true[..., 0:3])).item()
-            accum_info['e_x_mse'] += torch.sum((physics_pred[..., 0] - physics_true[..., 0])**2).item()
-            accum_info['e_x_mae'] += torch.sum(torch.abs(physics_pred[..., 0] - physics_true[..., 0])).item()
-            accum_info['e_y_mse'] += torch.sum((physics_pred[..., 1] - physics_true[..., 1])**2).item()
-            accum_info['e_y_mae'] += torch.sum(torch.abs(physics_pred[..., 1] - physics_true[..., 1])).item()
-            accum_info['e_z_mse'] += torch.sum((physics_pred[..., 2] - physics_true[..., 2])**2).item()
-            accum_info['e_z_mae'] += torch.sum(torch.abs(physics_pred[..., 2] - physics_true[..., 2])).item()
-
-
-        if use_momentum and use_energy:
-            accum_info['p_mse'] += torch.sum((physics_pred[..., 3] - physics_true[..., 3])**2).item()
-            accum_info['p_mae'] += torch.sum(torch.abs(physics_pred[..., 3] - physics_true[..., 3])).item()
-        elif use_momentum and not use_energy:
-            accum_info['p_mse'] += torch.sum((physics_pred[..., 0] - physics_true[..., 0])**2).item()
-            accum_info['p_mae'] += torch.sum(torch.abs(physics_pred[..., 0] - physics_true[..., 0])).item()
-
 
         if optimizer is not None:
             optimizer.zero_grad()
@@ -255,21 +265,39 @@ def do_epoch(data, model_pnl, model, epoch, optimizer=None, threshold = 0.5, los
     accum_info['e_z_mae'] /= num_insts
     accum_info['p_mse'] /= num_insts
     accum_info['p_mae'] /= num_insts
+    accum_info['p_x_mse'] /= num_insts
+    accum_info['p_x_mae'] /= num_insts
+    accum_info['p_y_mse'] /= num_insts
+    accum_info['p_y_mae'] /= num_insts
+    accum_info['p_z_mse'] /= num_insts
+    accum_info['p_z_mae'] /= num_insts
+    accum_info['p_t_mae'] /= num_insts
+    accum_info['p_t_mse'] /= num_insts
+
     r2 = r2_score(correct, preds, multioutput='raw_values')
     r2_all = r2_score(correct, preds, multioutput='variance_weighted')
     r2_energy = r2_score(correct[:, 0:3], preds[:, 0:3], multioutput='variance_weighted')
     accum_info['r2'] = r2_all
+    index = 0
     if use_energy:
-        accum_info['e_r2'] = r2_energy
-        accum_info['e_x_r2'] = r2[0]
-        accum_info['e_y_r2'] = r2[1]
-        accum_info['e_z_r2'] = r2[2]
-
-    if use_momentum and use_energy:
-        accum_info['p_r2'] = r2[3]
-    elif use_momentum and not use_energy:
-        accum_info['p_r2'] = r2[0]
-
+        et = correct[..., index:index+3]
+        ep = preds[..., index:index+3]
+        accum_info['e_r2'] = r2_score(et, ep, multioutput='variance_weighted')
+        accum_info['e_x_r2'] = r2[index]
+        accum_info['e_y_r2'] = r2[index+1]
+        accum_info['e_z_r2'] = r2[index+2]
+        index += 3
+    if use_momentum:
+        pt = correct[..., index:index+3]
+        pp = preds[..., index:index+3]
+        accum_info['p_r2'] = r2_score(pt, pp, multioutput='variance_weighted')
+        accum_info['p_x_r2'] = r2[index]
+        accum_info['p_y_r2'] = r2[index+1]
+        accum_info['p_z_r2'] = r2[index+2]
+        index += 3
+    if use_pt:
+        accum_info['p_t_r2'] = r2[index]
+        index += 1
 
     for m, v in accum_info.items():
         writer.add_scalar(f'{m}/{phase}', v, epoch)
@@ -333,51 +361,17 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
         dconfig = copy.copy(config['data'])
 
         del dconfig['use_momentum']
+        del dconfig['use_pt']
         del dconfig['use_energy']
 
-        train_data, val_data = get_data_loaders(**dconfig)
+        train_data, val_data, test_data = get_data_loaders(**dconfig)
         logging.info('Loaded %g training samples', len(train_data.dataset))
         logging.info('Loaded %g validation samples', len(val_data.dataset))
-
-    # Create model instance
-    model_pnl = None
-    if config['adj_model']['type'] == 'particlenet-lite-laplace':
-        conv_params = (
-            (config['adj_model']['k'], tuple(range(9)), (32, 32, 32), 'mean', 'ReLU'),
-            (config['adj_model']['k'], tuple(range(32)), (64, 64, 64), 'mean', 'ReLU')
-        )
-        mlp_params = ((128, 0.1),)
-        final_pooling = 'mean'
-        input_dim = 15
-        model_pnl = ParticleNetLaplace(
-                conv_params,
-                mlp_params,
-                final_pooling,
-                input_dim,
-                **config['adj_model']
-        )
-    elif config['adj_model']['type'] == 'particlenet-laplace':
-        conv_params = (
-                (config['adj_model']['k'], tuple(range(config['adj_model']['k'])), (64, 64, 64), 'mean', 'ReLU'),
-                (config['adj_model']['k'], tuple(range(config['adj_model']['k'])), (128, 128, 128), 'mean', 'ReLU'),
-                (config['adj_model']['k'], tuple(range(config['adj_model']['k'])), (64, 64, 64), 'mean', 'ReLU'),
-        )
-        mlp_params = ((256, 0.1),)
-        final_pooling = 'mean'
-        input_dim = 15
-        model_pnl = ParticleNetLaplace(
-                conv_params,
-                mlp_params,
-                final_pooling,
-                input_dim,
-                **config['adj_model']
-        )
-    else:
-        raise NotImplementedError(f'Model {config["adj_model"]["type"]} not implemented.')
+        logging.info('Loaded %g test samples', len(test_data.dataset))
 
 
     mconfig = copy.copy(config['model'])
-    mconfig['n_classes'] = 3*config['data']['use_energy'] + config['data']['use_momentum']
+    mconfig['n_classes'] = 3*config['data']['use_energy'] + 3*config['data']['use_momentum'] + config['data']['use_pt']
     if mconfig['type'] == 'MLP':
         del mconfig['type']
         model = MLP(
@@ -391,13 +385,7 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
     else:
         raise NotImplementedError('Model {config["model"]["type"]} not implemented.')
 
-    model_pnl = model_pnl.to(DEVICE)
     model = model.to(DEVICE)
-
-    checkpoint_file_pnl = config['checkpoint_file_pnl']
-    model_pnl = load_checkpoint(checkpoint_file_pnl, model_pnl)
-    model_pnl.eval()
-
 
     writer = SummaryWriter(log_dir=config['tensorboard_output_dir'])
     # Optimizer
@@ -437,7 +425,7 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
     best_val_metrics = {}
 
     for epoch in range(1, config['epochs'] + 1):
-        train_info = train(train_data, model_pnl, model, optimizer, epoch, config['output_dir'], threshold=config['threshold'], loss=config['loss']['type'], use_energy=config['data']['use_energy'], use_momentum=config['data']['use_momentum'])
+        train_info = train(train_data, model, optimizer, epoch, config['output_dir'], loss=config['loss']['type'], use_energy=config['data']['use_energy'], use_momentum=config['data']['use_momentum'], use_pt=config['data']['use_pt'], use_radius=config['data']['use_radius'])
         table = make_table(
             ('Total loss', f"{train_info['loss']:.6f}"),
             ('Mean Squared Error', f"{train_info['mse']:.6f}"),
@@ -458,6 +446,18 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
             ('Momentum Mean Squared Error', f"{train_info['p_mse']:.6f}"),
             ('Momentum Mean Absolute Error', f"{train_info['p_mae']:.6f}"),
             ('Momentum R^2', f"{train_info['p_r2']:.6f}"),
+            ('p_x Mean Squared Error', f"{train_info['p_x_mse']:.6f}"),
+            ('p_x Mean Absolute Error', f"{train_info['p_x_mae']:.6f}"),
+            ('p_x R^2', f"{train_info['p_x_r2']:.6f}"),
+            ('p_y Mean Squared Error', f"{train_info['p_y_mse']:.6f}"),
+            ('p_y Mean Absolute Error', f"{train_info['p_y_mae']:.6f}"),
+            ('p_y R^2', f"{train_info['p_y_r2']:.6f}"),
+            ('p_z Mean Squared Error', f"{train_info['p_z_mse']:.6f}"),
+            ('p_z Mean Absolute Error', f"{train_info['p_z_mae']:.6f}"),
+            ('p_z R^2', f"{train_info['p_z_r2']:.6f}"),
+            ('Tranverse Momentum MAE', f"{train_info['p_t_mae']}"),
+            ('Tranverse Momentum MSE', f"{train_info['p_t_mse']}"),
+            ('Tranverse Momentum R^2', f"{train_info['p_t_r2']:.6f}"),
             ('Runtime', f"{train_info['run_time']}")
         )
 
@@ -474,10 +474,12 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
             table
         )))
 
-        val_info = evaluate(val_data, model_pnl, model, epoch, threshold=config['threshold'],
+        val_info = evaluate(val_data, model, epoch,
                 loss=config['loss']['type'],
                 use_energy=config['data']['use_energy'],
-                use_momentum=config['data']['use_momentum']
+                use_momentum=config['data']['use_momentum'],
+                use_pt=config['data']['use_pt'],
+                use_radius=config['data']['use_radius'],
                 )
 
         table = make_table(
@@ -500,8 +502,21 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
             ('Momentum Mean Squared Error', f"{val_info['p_mse']:.6f}"),
             ('Momentum Mean Absolute Error', f"{val_info['p_mae']:.6f}"),
             ('Momentum R^2', f"{val_info['p_r2']:.6f}"),
+            ('p_x Mean Squared Error', f"{val_info['p_x_mse']:.6f}"),
+            ('p_x Mean Absolute Error', f"{val_info['p_x_mae']:.6f}"),
+            ('p_x R^2', f"{val_info['p_x_r2']:.6f}"),
+            ('p_y Mean Squared Error', f"{val_info['p_y_mse']:.6f}"),
+            ('p_y Mean Absolute Error', f"{val_info['p_y_mae']:.6f}"),
+            ('p_y R^2', f"{val_info['p_y_r2']:.6f}"),
+            ('p_z Mean Squared Error', f"{val_info['p_z_mse']:.6f}"),
+            ('p_z Mean Absolute Error', f"{val_info['p_z_mae']:.6f}"),
+            ('p_z R^2', f"{val_info['p_z_r2']:.6f}"),
+            ('Tranverse Momentum MAE', f"{val_info['p_t_mae']}"),
+            ('Tranverse Momentum MSE', f"{val_info['p_t_mse']}"),
+            ('Tranverse Momentum R^2', f"{val_info['p_t_r2']:.6f}"),
             ('Runtime', f"{val_info['run_time']}")
         )
+
 
         logging.info('\n'.join((
             '',
@@ -517,8 +532,8 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
             val_metrics[k][epoch-1] = v
  
  
-        if val_info['p_r2'] > best_val_momentum_r2:
-            best_val_momentum_r2 = val_info['p_r2']
+        if val_info['p_t_r2'] > best_val_momentum_r2:
+            best_val_momentum_r2 = val_info['p_t_r2']
             best_val_metrics = copy.copy(val_info)
             best_epoch = epoch
             best_model = copy.deepcopy(model)
@@ -530,6 +545,57 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
 
     logging.info(f'Best validation momentum R^2: {best_val_momentum_r2:.4f}, best epoch: {best_epoch}.')
     logging.info(f'Training runtime: {str(datetime.now() - start_time).split(".")[0]}')
+    test_info = evaluate(test_data, model, epoch,
+            loss=config['loss']['type'],
+            use_energy=config['data']['use_energy'],
+            use_momentum=config['data']['use_momentum'],
+            use_pt=config['data']['use_pt'],
+            use_radius=config['data']['use_radius'],
+            )
+
+    table = make_table(
+            ('Total loss', f"{test_info['loss']:.6f}"),
+            ('Mean Squared Error', f"{test_info['mse']:.6f}"),
+            ('Mean Absolute Error', f"{test_info['mae']:.6f}"),
+            ('R^2', f"{test_info['r2']:.6f}"),
+            ('Energy Mean Squared Error', f"{test_info['e_mse']:.6f}"),
+            ('Energy Mean Absolute Error', f"{test_info['e_mae']:.6f}"),
+            ('Energy R^2', f"{test_info['e_r2']:.6f}"),
+            ('E_x Mean Squared Error', f"{test_info['e_x_mse']:.6f}"),
+            ('E_x Mean Absolute Error', f"{test_info['e_x_mae']:.6f}"),
+            ('E_x R^2', f"{test_info['e_x_r2']:.6f}"),
+            ('E_y Mean Squared Error', f"{test_info['e_y_mse']:.6f}"),
+            ('E_y Mean Absolute Error', f"{test_info['e_y_mae']:.6f}"),
+            ('E_y R^2', f"{test_info['e_y_r2']:.6f}"),
+            ('E_z Mean Squared Error', f"{test_info['e_z_mse']:.6f}"),
+            ('E_z Mean Absolute Error', f"{test_info['e_z_mae']:.6f}"),
+            ('E_z R^2', f"{test_info['e_z_r2']:.6f}"),
+            ('Momentum Mean Squared Error', f"{test_info['p_mse']:.6f}"),
+            ('Momentum Mean Absolute Error', f"{test_info['p_mae']:.6f}"),
+            ('Momentum R^2', f"{test_info['p_r2']:.6f}"),
+            ('p_x Mean Squared Error', f"{test_info['p_x_mse']:.6f}"),
+            ('p_x Mean Absolute Error', f"{test_info['p_x_mae']:.6f}"),
+            ('p_x R^2', f"{test_info['p_x_r2']:.6f}"),
+            ('p_y Mean Squared Error', f"{test_info['p_y_mse']:.6f}"),
+            ('p_y Mean Absolute Error', f"{test_info['p_y_mae']:.6f}"),
+            ('p_y R^2', f"{test_info['p_y_r2']:.6f}"),
+            ('p_z Mean Squared Error', f"{test_info['p_z_mse']:.6f}"),
+            ('p_z Mean Absolute Error', f"{test_info['p_z_mae']:.6f}"),
+            ('p_z R^2', f"{test_info['p_z_r2']:.6f}"),
+            ('Tranverse Momentum MAE', f"{test_info['p_t_mae']}"),
+            ('Tranverse Momentum MSE', f"{test_info['p_t_mse']}"),
+            ('Tranverse Momentum R^2', f"{test_info['p_t_r2']:.6f}"),
+            ('Runtime', f"{test_info['run_time']}")
+            )
+
+
+    logging.info('\n'.join((
+        '',
+        center_text(f"Test", ' '),
+        table
+        )))
+
+
 
     # Saving to disk
     if args.save:
@@ -571,8 +637,6 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
 
     writer.add_hparams(hp, hparams_metrics,
     hparam_domain_discrete = {
-        'd_metric/adj_model': ['intertrack', 'einsum'],
-        'type/adj_model': ['particlenet-laplace', 'particlenet-lite-laplace'],
         'type/optimizer': ['Adam', 'SGD'],
         'load_complete_graph/data': [True, False],
     })
