@@ -92,7 +92,7 @@ def load_graph(filename, load_compelete_graph=False):
         if n_track != 0:
             adj = (origin_vertices[:,None] == origin_vertices).all(axis=2)
         else:
-            adj = 0
+            adj = np.array([[]])
     # need:
     # origin_vertices
     # adj
@@ -151,7 +151,7 @@ class TrkDataset():
         self.is_trigger_track = []
         self.r = []
 
-        for file_index in tqdm.tqdm(range(len(self.filenames))):
+        for file_index in range(len(self.filenames)):
             track_vector, complete_flags, origin_vertices, momentums, pids, ptypes, energy, trigger, ip, adj = load_graph(self.filenames[file_index], load_complete_graph)
             if track_vector.shape[0] != 0 and add_geo_features:
                 # 4 edge length + 1 total length, 1 angle + 4 delta angle, hits center , total 13
@@ -169,7 +169,7 @@ class TrkDataset():
             self.track_vector.append(track_vector)
 
             if use_radius:
-                hits = track_vector.reshape(track_vector.shape[0], 5, 3)
+                hits = track_vector[:, :15].reshape(track_vector.shape[0], 5, 3)
                 good_hits = np.all(hits != 0, axis=-1)
                 n_hits = np.sum(good_hits, axis=-1)
                 r = get_approximate_radii(track_vector, n_hits, good_hits)
@@ -227,7 +227,7 @@ def get_data_loaders(name, batch_size, **data_args):
 
 def get_datasets(n_train, n_valid, input_dir=None, filelist=None,
                 n_folders=1, input_dir2=None, input_dir3=None, random_permutation=True,
-                n_train2=None, n_valid2=None, n_train3=0, n_valid3=0, load_complete_graph=False, add_geo_features=False, corruption_level=0.0, use_radius=False):
+                n_train2=None, n_valid2=None, n_train3=0, n_valid3=0, load_complete_graph=False, add_geo_features=False, corruption_level=0.0, use_radius=True):
     n_train2 = n_train
     n_valid2 = n_valid
     data = TrkDataset(input_dir=input_dir, filelist=filelist,

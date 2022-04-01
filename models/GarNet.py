@@ -22,10 +22,12 @@ class GarNet(nn.Module):
             layers_spec, # Tuple of (N, feature_dim, coordinate_dim)
             num_classes,
             hidden_activation='Tanh', 
+            aggregator_activation='potential'
             ):
         super(GarNet, self).__init__()
         garnet_layers = []
         prev_dim = num_features
+        self.aggregator_activation = aggregator_activation
         for feature_dim, n_aggregators in layers_spec:
             garnet_layers.append(
                     GarNetLayer(
@@ -80,7 +82,16 @@ class GarNetLayer(nn.Module):
         F = Xp[..., :self._feature_dim]
         distances = Xp[..., self._feature_dim:]
         
-        potential = torch.exp(-torch.abs(distances))
+        if self.aggregator_activation == 'potential':
+            potential = torch.exp(-torch.abs(distances))
+        elif self.aggregator_activation == 'ReLU':
+            act = nn.ReLU()
+            potential = act(distances)
+        elif self.aggregator_activation == 'Tanh':
+            act = nn.Tanh()
+            potential = act(distances)
+        else:
+            potential = distances
         # potential is of shape (n_minibatches, n_tracks, n_aggregators)
         edges = torch.einsum('btf,bta->baft', F, potential)
         max_pooled = torch.max(edges, dim=-1)[0] # (n_minibatches, n_aggregators, n_features)

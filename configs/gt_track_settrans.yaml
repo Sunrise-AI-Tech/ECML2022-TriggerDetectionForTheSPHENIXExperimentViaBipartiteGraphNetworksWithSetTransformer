@@ -1,8 +1,7 @@
 output_dir: train_results/set/
 tensorboard_output_dir: runs/set/
 
-name_on_wandb: transset-gttrack
-
+name_on_wandb: transset-gttrack-fixerror
 epochs: 50
 
 optimizer:
@@ -12,7 +11,7 @@ optimizer:
   weight_decay: 0.0001
 
 model:
-  dim_input: 15
+  dim_input: 28
   num_outputs: 1
   dim_output: 2
   num_inds: 32
@@ -24,7 +23,7 @@ data:
         name: trkvec
         input_dir: /home1/tingtingxuan/Data/parsed_trackvec/Signal
         input_dir2: /home1/tingtingxuan/Data/parsed_trackvec/Background
-        use_radius: True
+        use_radius: False
         use_momentum: False
         use_energy: False
         momentum_disturb: 0
@@ -36,4 +35,4 @@ data:
         n_folders: 2
         n_folders: 2
         load_complete_graph: False
-        add_geo_features: False
+        add_geo_features: True

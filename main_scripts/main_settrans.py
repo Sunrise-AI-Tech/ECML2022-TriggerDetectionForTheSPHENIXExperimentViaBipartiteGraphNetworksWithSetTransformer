@@ -313,7 +313,6 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
 
         del dconfig['use_momentum']
         del dconfig['use_energy']
-        del dconfig['use_radius']
         del dconfig['momentum_disturb']
         del dconfig['radius_disturb']
 

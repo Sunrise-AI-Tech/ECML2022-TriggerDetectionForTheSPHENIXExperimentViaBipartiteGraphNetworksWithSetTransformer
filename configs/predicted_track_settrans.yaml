@@ -3,7 +3,7 @@ tensorboard_output_dir: runs/set/
 
 name_on_wandb: transset
 
-epochs: 5000
+epochs: 100
 
 optimizer:
   type: Adam
@@ -19,6 +19,7 @@ model:
   dim_hidden: 128
   num_heads: 4
   ln: False
+  aggregator_activation: ReLU
 
 data:
         name: trkvec_predicted
