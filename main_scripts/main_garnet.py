@@ -25,8 +25,6 @@ import torch.nn as nn
 import pickle
 import torch_geometric
 
-import wandb
-
 # Change working directory to project's main directory, and add it to path - for library and config usages
 project_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 sys.path.append(project_dir)
@@ -43,11 +41,18 @@ from GCL.models import DualBranchContrast
 import GCL.losses as L
 import GCL.augmentors as A
 
+import signal
+
+CLEAN_EXIT_REQUEST = False
+def handler(signum, frame):
+    CLEAN_EXIT_REQUEST = True
+
+signal.signal(signal.SIGUSR1, handler)
 
 class ArgDict:
     pass
 
-DEVICE = 'cuda:0'
+DEVICE = 'cuda:1'
 OLD_COLUMNS = None
 
 def parse_args():
@@ -56,7 +61,7 @@ def parse_args():
     :return: argparser instance
     """
     argparser = argparse.ArgumentParser(description=__doc__)
-    argparser.add_argument('--config', default='configs/predicted_tracks_garnet.yaml')
+    argparser.add_argument('--config', default='configs/garnet.yaml')
     argparser.add_argument('-g', '--gpu', default='0', help='The gpu to run on')
     argparser.add_argument('--auto', action='store_true')
     argparser.add_argument('--save', dest='save', action='store_true', help='Whether to save all to disk')
@@ -69,7 +74,7 @@ def parse_args():
     # Logging
     argparser.add_argument('--name', type=str, default=None,
             help="Run name")
-    argparser.add_argument('--wandb', type=str, default='trigger-garnet-7layer', 
+    argparser.add_argument('--wandb', type=str, default='trigger-pns', 
             help="wandb project name")
     argparser.add_argument('--use_wandb', action='store_true',
                         help="use wandb project name")
@@ -98,8 +103,32 @@ def calc_metrics(trig, pred, accum_info):
 
     return accum_info
 
+def extract_hyperparameters(config):
+    hp = {}
+    hp['type/optimizer'] = config['optimizer']['type']
+    hp['momentum/optimizer'] = config['optimizer']['momentum']
+    hp['weight_decay/optimizer'] = config['optimizer']['weight_decay']
+    hp['learning_rate/optimizer'] = config['optimizer']['learning_rate']
+    hp['name/data'] = config['data']['name']
+    hp['n_train/data'] = config['data']['n_train']
+    hp['n_valid/data'] = config['data']['n_valid']
+    hp['batch_size/data'] = config['data']['batch_size']
+    hp['load_complete_graph/data'] = config['data']['load_complete_graph']
+    hp['use_momentum/data'] = config['data']['use_momentum']
+    hp['use_energy/data'] = config['data']['use_energy']
+    hp['use_radius/data'] = config['data']['use_radius']
 
-def train(data, model, optimizer, epoch, output_dir,  use_energy=False, use_momentum=False, use_radius=False):
+
+    hp['num_features/model'] = config['model']['num_features']
+    hp['potential/model'] = config['model']['potential']
+    hp['layers_spec/model'] = repr(config['model']['layers_spec'])
+    hp['num_classes/model'] = config['model']['num_classes']
+
+    return hp
+
+
+
+def train(data, model, optimizer, epoch, output_dir, use_energy=False, use_momentum=False, use_radius=False):
     train_info = do_epoch(data, model, epoch, optimizer, use_energy=use_energy, use_momentum=use_momentum, use_radius=use_radius)
     write_checkpoint(checkpoint_id=epoch, model=model, optimizer=optimizer, output_dir=output_dir)
     return train_info
@@ -111,6 +140,7 @@ def evaluate(data, model, epoch, use_momentum=False, use_energy=False, use_radiu
 
 
 def do_epoch(data, model, epoch, optimizer=None, use_energy=False, use_momentum=False, use_radius=False):
+    global writer, CLEAN_EXIT_REQUEST
     if optimizer is None:
         # validation epoch
         model.eval()
@@ -147,6 +177,8 @@ def do_epoch(data, model, epoch, optimizer=None, use_energy=False, use_momentum=
     total_selected = 0
     
     for batch in data:
+        if CLEAN_EXIT_REQUEST:
+            break
 
         tracks, vtx, partitions_as_graph, n_tracks, trig, energy, momentum, is_trigger_track, radii = batch
         tracks = tracks.to(DEVICE, torch.float)
@@ -209,6 +241,9 @@ def do_epoch(data, model, epoch, optimizer=None, use_energy=False, use_momentum=
         accum_info['auroc'] = roc_auc_score(correct, preds_prob)
     except ValueError:
         accum_info['auroc'] = 0
+
+    for m, v in accum_info.items():
+        writer.add_scalar(f'{m}/{phase}', v, epoch)
            
     accum_info['run_time'] = datetime.now() - start_time
     accum_info['run_time'] = str(accum_info['run_time']).split(".")[0]
@@ -219,6 +254,7 @@ def do_epoch(data, model, epoch, optimizer=None, use_energy=False, use_momentum=
     return accum_info
 
 def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
+    global writer
     start_time = datetime.now()
     seed = 42
     np.random.seed(seed)
@@ -232,6 +268,7 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
 
     # Load configuration
     config = load_config(args.config)
+    hp = extract_hyperparameters(config)
 
     if auto:
         config['tensorboard_output_dir'] = parser_dict['tensorboard_output_dir']
@@ -260,18 +297,8 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
     # os.environ["CUDA_VISIBLE_DEVICES"] = config.gpu
     torch.cuda.set_device(int(args.gpu))
 
-    name = config['name_on_wandb'] + f"-n_hid{config['model']['num_features']}-agg_activation{config['model']['aggregator_activation']}-use_radius{config['data']['use_radius']}-use_momentum{config['data']['use_momentum']}-ntrain{config['data']['n_train']}*2-lr{config['optimizer']['learning_rate']}-{config['optimizer']['type']}-b{config['data']['batch_size']}"
-    logging.info(name)
-    if args.use_wandb:
-        wandb.init(
-            project=f'{args.wandb}', 
-            name=f'{name}',
-            tags=["Sunrise", "Trigger"],
-            config=config,
-        )
-
     if auto:
-        train_data, val_data = datasets
+        train_data, val_data, test_data = datasets
     else:
         # Load data
         logging.info('Loading training data and validation data')
@@ -280,9 +307,10 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
         del dconfig['use_momentum']
         del dconfig['use_energy']
 
-        train_data, val_data = get_data_loaders(**dconfig)
+        train_data, val_data, test_data = get_data_loaders(**dconfig)
         logging.info('Loaded %g training samples', len(train_data.dataset))
         logging.info('Loaded %g validation samples', len(val_data.dataset))
+        logging.info('Loaded %g test samples', len(test_data.dataset))
 
     mconfig = copy.copy(config['model'])
     mconfig['num_features'] += 3*config['data']['use_energy'] + 3*config['data']['use_momentum'] + config['data']['use_radius']
@@ -291,6 +319,8 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
     )
     model = model.to(DEVICE)
 
+
+    writer = SummaryWriter(log_dir=config['tensorboard_output_dir'])
     # Optimizer
     if config['optimizer']['type'] == 'Adam':
         optimizer = torch.optim.Adam(params=model.parameters(), lr=config['optimizer']['learning_rate'], weight_decay=config['optimizer']['weight_decay'])
@@ -329,7 +359,10 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
     best_val_ri = -1
     best_val_auroc = -1
     best_model = None
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
     for epoch in range(1, config['epochs'] + 1):
+        if CLEAN_EXIT_REQUEST:
+            break
 
         train_info = train(train_data, model, optimizer, epoch, config['output_dir'],
                 use_energy=config['data']['use_energy'], use_momentum=config['data']['use_momentum'],
@@ -355,15 +388,6 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
             table
         )))
         train_loss[epoch-1], train_ri[epoch-1] = train_info['loss'], train_info['ri']
-        if args.use_wandb:
-            phase = 'train'
-            wandb.log({phase.capitalize() + " Loss" : train_info['loss']})
-            wandb.log({phase.capitalize() + " Accuracy" : train_info['ri']})
-            wandb.log({phase.capitalize() + " Precion" : train_info['precision']})
-            wandb.log({phase.capitalize() + " Recall": train_info['recall']})
-            wandb.log({phase.capitalize() + " F Score": train_info['fscore']})
-            wandb.log({phase.capitalize() + " Roc_auc": train_info['auroc']})
-            wandb.log({phase.capitalize() + " Run Time": train_info['run_time']})
 
         val_info = evaluate(val_data, model, epoch,
                 use_energy=config['data']['use_energy'], use_momentum=config['data']['use_momentum'],
@@ -390,16 +414,6 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
 
         val_loss[epoch-1], val_ri[epoch-1] = val_info['loss'], val_info['ri']
 
-        if args.use_wandb:
-            phase = 'valid'
-            wandb.log({phase.capitalize() + " Loss" : val_info['loss']})
-            wandb.log({phase.capitalize() + " Accuracy" : val_info['ri']})
-            wandb.log({phase.capitalize() + " Precion" : val_info['precision']})
-            wandb.log({phase.capitalize() + " Recall": val_info['recall']})
-            wandb.log({phase.capitalize() + " F Score": val_info['fscore']})
-            wandb.log({phase.capitalize() + " Roc_auc": val_info['auroc']})
-            wandb.log({phase.capitalize() + " Run Time": val_info['run_time']})
-
         if val_info['ri'] > best_val_ri:
             best_val_ri = val_info['ri']
             best_val_auroc = val_info['auroc']
@@ -413,6 +427,31 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
 
     logging.info(f'Best validation acc: {best_val_ri:.4f}, best epoch: {best_epoch}.')
     logging.info(f'Training runtime: {str(datetime.now() - start_time).split(".")[0]}')
+    test_info = evaluate(test_data, model, epoch,
+            use_energy=config['data']['use_energy'], use_momentum=config['data']['use_momentum'],
+            use_radius=config['data']['use_radius']
+        )
+    table = make_table(
+        ('Total loss', f"{test_info['loss']:.6f}"),
+        ('Rand Index', f"{test_info['ri']:.6f}"),
+        ('F-score', f"{test_info['fscore']:.4f}"),
+        ('Recall', f"{test_info['recall']:.4f}"),
+        ('Precision', f"{test_info['precision']:.4f}"),
+        ('True Positives', f"{test_info['true_positives']}"),
+        ('False Positives', f"{test_info['false_positives']}"),
+        ('True Negatives', f"{test_info['true_negatives']}"),
+        ('False Negatives', f"{test_info['false_negatives']}"),
+        ('AUC Score', f"{test_info['auroc']:.6f}"),
+        ('Runtime', f"{test_info['run_time']}")
+    )
+
+    logging.info('\n'.join((
+        '',
+        center_text(f"Test", ' '),
+        table
+    )))
+
+
 
     # Saving to disk
     if args.save:
@@ -442,13 +481,23 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
         best_df = pd.DataFrame(best_dict, index=[0])
         best_df.to_csv(os.path.join(output_dir, "best_val_results.csv"), index=False)
 
+    writer.add_hparams(hp, {
+        'auroc/validation': best_val_auroc,
+        'ri/validation': best_val_ri,
+    },
+    hparam_domain_discrete = {
+        'type/optimizer': ['Adam', 'SGD'],
+        'load_complete_graph/data': [True, False],
+        'use_energy/data': [True, False],
+        'use_momentum/data': [True, False]
+    })
+
+    writer.close()
 
     if auto:
         return best_val_ri
 
     logging.shutdown()
-
-
 
 
 if __name__ == '__main__':

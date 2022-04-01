@@ -19,15 +19,14 @@ class GarNet(nn.Module):
     def __init__(
             self,
             num_features,
-            layers_spec, # Tuple of (N, feature_dim, coordinate_dim)
+            layers_spec, # Tuple of (feature_dim, n_aggregators)
             num_classes,
             hidden_activation='Tanh', 
-            aggregator_activation='potential'
+            potential='garnet' # TODO: add to actually do this
             ):
         super(GarNet, self).__init__()
         garnet_layers = []
         prev_dim = num_features
-        
         for feature_dim, n_aggregators in layers_spec:
             garnet_layers.append(
                     GarNetLayer(
@@ -35,7 +34,6 @@ class GarNet(nn.Module):
                         feature_dim,
                         n_aggregators,
                         hidden_activation,
-                        aggregator_activation,
                     )
             )
             prev_dim = feature_dim 
@@ -64,10 +62,8 @@ class GarNetLayer(nn.Module):
         feature_dim,
         n_aggregators,
         hidden_activation,
-        aggregator_activation
     ):
         super(GarNetLayer, self).__init__()
-        self.aggregator_activation = aggregator_activation
         self.transform_in = nn.Linear(input_dim, feature_dim + n_aggregators)
         self.transform_out = nn.Sequential(
                 nn.Linear(2*feature_dim*n_aggregators + input_dim, feature_dim),
@@ -85,16 +81,7 @@ class GarNetLayer(nn.Module):
         F = Xp[..., :self._feature_dim]
         distances = Xp[..., self._feature_dim:]
         
-        if self.aggregator_activation == 'potential':
-            potential = torch.exp(-torch.abs(distances))
-        elif self.aggregator_activation == 'ReLU':
-            act = nn.ReLU()
-            potential = act(distances)
-        elif self.aggregator_activation == 'Tanh':
-            act = nn.Tanh()
-            potential = act(distances)
-        else:
-            potential = distances
+        potential = torch.exp(-torch.abs(distances))
         # potential is of shape (n_minibatches, n_tracks, n_aggregators)
         edges = torch.einsum('btf,bta->baft', F, potential)
         max_pooled = torch.max(edges, dim=-1)[0] # (n_minibatches, n_aggregators, n_features)
