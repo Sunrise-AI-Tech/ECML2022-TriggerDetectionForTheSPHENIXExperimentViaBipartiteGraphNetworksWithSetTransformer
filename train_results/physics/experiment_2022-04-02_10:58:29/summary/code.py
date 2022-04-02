@@ -40,7 +40,7 @@ from utils.log import write_checkpoint, load_config, load_checkpoint, config_log
 from torch.utils.tensorboard import SummaryWriter
 from sklearn.metrics import r2_score
 
-DEVICE = 'cuda:1'
+DEVICE = 'cuda:0'
 OLD_COLUMNS = None
 
 def parse_args():

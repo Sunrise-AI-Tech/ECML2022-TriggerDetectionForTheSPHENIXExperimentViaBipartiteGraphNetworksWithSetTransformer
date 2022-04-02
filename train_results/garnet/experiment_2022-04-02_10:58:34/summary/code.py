@@ -52,7 +52,7 @@ signal.signal(signal.SIGUSR1, handler)
 class ArgDict:
     pass
 
-DEVICE = 'cuda:1'
+DEVICE = 'cuda:0'
 OLD_COLUMNS = None
 
 def parse_args():
