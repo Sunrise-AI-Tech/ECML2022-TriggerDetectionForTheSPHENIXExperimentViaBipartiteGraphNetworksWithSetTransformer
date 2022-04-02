@@ -95,7 +95,19 @@ class Bipartite_Layers(nn.Module):
         """
         Xp = self.enc(X)
         Xp = self.transform_in(Xp)
-        attention_score = torch.softmax(self.aggregator_score(Xp), 0)
+        attention_score = self.aggregator_score(Xp)
+        if self.aggregator_activation == 'potential':
+            attention_score = torch.exp(-torch.abs(attention_score))
+        elif self.aggregator_activation == 'ReLU':
+            act = nn.ReLU()
+            attention_score = act(attention_score)
+        elif self.aggregator_activation == 'Tanh':
+            act = nn.Tanh()
+            attention_score = act(attention_score)
+        elif self.aggregator_activation == 'softmax':
+            attention_score = torch.softmax(attention_score, 0)
+        else:
+            attention_score = attention_score
         edges = torch.einsum('btf,bta->baft', Xp, attention_score)
         max_pooled = torch.max(edges, dim=-1)[0] # (n_minibatches, n_aggregators, n_features)
         mean_pooled = torch.mean(edges, dim=-1)
