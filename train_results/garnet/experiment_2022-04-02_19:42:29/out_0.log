@@ -1,0 +1,902 @@
+2022-04-02 19:42:29,073 INFO Command line config: Namespace(config='configs/garnet.yaml', gpu='0', auto=False, save=True, verbose=False, show_config=False, resume=0, name=None, wandb='trigger-pns', use_wandb=False, log_interval=25, print_interval=250, debug_load=False)
+2022-04-02 19:42:29,073 INFO Configuration: {'output_dir': 'train_results/garnet/experiment_2022-04-02_19:42:29', 'tensorboard_output_dir': 'runs/garnet/experiment_2022-04-02_19:42:29', 'epochs': 50, 'optimizer': {'type': 'Adam', 'momentum': 0.9, 'learning_rate': 0.0001, 'weight_decay': 0.0001}, 'model': {'num_features': 28, 'layers_spec': [[4, 8], [8, 16], [4, 8]], 'num_classes': 2, 'potential': 'garnet'}, 'data': {'name': 'trkvec-ecml', 'train_input_dir': '/home/giorgian/data/presplit/train_gt', 'valid_input_dir': '/home/giorgian/data/presplit/valid_gt', 'test_input_dir': '/home/giorgian/data/presplit/test_gt', 'n_train': 1000000, 'n_valid': 400000, 'n_test': 400000, 'add_geo_features': True, 'use_radius': True, 'use_momentum': False, 'use_energy': False, 'batch_size': 32, 'n_workers': 4, 'load_complete_graph': False}}
+2022-04-02 19:42:29,073 INFO Saving job outputs to train_results/garnet/experiment_2022-04-02_19:42:29
+2022-04-02 19:42:29,073 INFO Writing config via pickle to train_results/garnet/experiment_2022-04-02_19:42:29/config.pkl
+2022-04-02 19:42:29,075 INFO Loading training data and validation data
+2022-04-02 21:00:38,871 INFO Loaded 1e+06 training samples
+2022-04-02 21:00:38,873 INFO Loaded 400000 validation samples
+2022-04-02 21:00:38,873 INFO Loaded 400000 test samples
+2022-04-02 21:00:41,810 INFO Model: 
+GarNet(
+  (_layers): Sequential(
+    (0): GarNetLayer(
+      (transform_in): Linear(in_features=29, out_features=12, bias=True)
+      (transform_out): Sequential(
+        (0): Linear(in_features=93, out_features=4, bias=True)
+        (1): Tanh()
+      )
+    )
+    (1): GarNetLayer(
+      (transform_in): Linear(in_features=4, out_features=24, bias=True)
+      (transform_out): Sequential(
+        (0): Linear(in_features=260, out_features=8, bias=True)
+        (1): Tanh()
+      )
+    )
+    (2): GarNetLayer(
+      (transform_in): Linear(in_features=8, out_features=12, bias=True)
+      (transform_out): Sequential(
+        (0): Linear(in_features=72, out_features=4, bias=True)
+        (1): Tanh()
+      )
+    )
+  )
+  (_pred_layers): Sequential(
+    (0): Linear(in_features=8, out_features=4, bias=True)
+    (1): ReLU()
+    (2): Linear(in_features=4, out_features=2, bias=True)
+  )
+)
+Parameters: 3390
+2022-04-02 21:00:41,810 INFO The number of model parameters is 3390
+2022-04-02 21:06:43,121 INFO 
+################################################################################
+Training -    1                                                                                
+Total loss      = 0.498542 Rand Index      = 0.753413 
+F-score         =   0.7829 Recall          =   0.8488 
+Precision       =   0.7264 True Positives  = 421392.0 
+False Positives = 158691.0 True Negatives  = 292746.0 
+False Negatives =  75042.0 AUC Score       = 0.833916 
+Runtime         =  0:06:01 
+2022-04-02 21:07:15,110 INFO 
+Validation -    1                                                                                
+Total loss      = 0.432440 Rand Index      = 0.811719 
+F-score         =   0.8326 Recall          =   0.8943 
+Precision       =   0.7788 True Positives  = 177508.0 
+False Positives =  50404.0 True Negatives  = 130256.0 
+False Negatives =  20983.0 AUC Score       = 0.871475 
+Runtime         =  0:00:31 
+2022-04-02 21:13:04,162 INFO 
+################################################################################
+Training -    2                                                                                
+Total loss      = 0.424119 Rand Index      = 0.811685 
+F-score         =   0.8318 Recall          =   0.8889 
+Precision       =   0.7816 True Positives  = 441272.0 
+False Positives = 123336.0 True Negatives  = 328101.0 
+False Negatives =  55162.0 AUC Score       = 0.877784 
+Runtime         =  0:05:49 
+2022-04-02 21:13:38,451 INFO 
+Validation -    2                                                                                
+Total loss      = 0.414021 Rand Index      = 0.815047 
+F-score         =   0.8354 Recall          =   0.8965 
+Precision       =   0.7821 True Positives  = 177941.0 
+False Positives =  49575.0 True Negatives  = 131085.0 
+False Negatives =  20550.0 AUC Score       = 0.883411 
+Runtime         =  0:00:34 
+2022-04-02 21:19:19,234 INFO 
+################################################################################
+Training -    3                                                                                
+Total loss      = 0.412982 Rand Index      = 0.814994 
+F-score         =   0.8340 Recall          =   0.8876 
+Precision       =   0.7866 True Positives  = 440620.0 
+False Positives = 119548.0 True Negatives  = 331889.0 
+False Negatives =  55814.0 AUC Score       = 0.884000 
+Runtime         =  0:05:40 
+2022-04-02 21:19:51,685 INFO 
+Validation -    3                                                                                
+Total loss      = 0.408919 Rand Index      = 0.817223 
+F-score         =   0.8359 Recall          =   0.8895 
+Precision       =   0.7885 True Positives  = 176555.0 
+False Positives =  47364.0 True Negatives  = 133296.0 
+False Negatives =  21936.0 AUC Score       = 0.885731 
+Runtime         =  0:00:32 
+2022-04-02 21:25:54,737 INFO 
+################################################################################
+Training -    4                                                                                
+Total loss      = 0.408950 Rand Index      = 0.817421 
+F-score         =   0.8362 Recall          =   0.8897 
+Precision       =   0.7887 True Positives  = 441672.0 
+False Positives = 118299.0 True Negatives  = 333138.0 
+False Negatives =  54762.0 AUC Score       = 0.885239 
+Runtime         =  0:06:03 
+2022-04-02 21:26:25,506 INFO 
+Validation -    4                                                                                
+Total loss      = 0.409556 Rand Index      = 0.816809 
+F-score         =   0.8331 Recall          =   0.8734 
+Precision       =   0.7964 True Positives  = 173360.0 
+False Positives =  44326.0 True Negatives  = 136334.0 
+False Negatives =  25131.0 AUC Score       = 0.884623 
+Runtime         =  0:00:30 
+2022-04-02 21:32:11,816 INFO 
+################################################################################
+Training -    5                                                                                
+Total loss      = 0.405964 Rand Index      = 0.819088 
+F-score         =   0.8382 Recall          =   0.8946 
+Precision       =   0.7885 True Positives  = 444108.0 
+False Positives = 119155.0 True Negatives  = 332282.0 
+False Negatives =  52326.0 AUC Score       = 0.885601 
+Runtime         =  0:05:46 
+2022-04-02 21:32:43,099 INFO 
+Validation -    5                                                                                
+Total loss      = 0.400465 Rand Index      = 0.821831 
+F-score         =   0.8402 Recall          =   0.8944 
+Precision       =   0.7921 True Positives  = 177532.0 
+False Positives =  46594.0 True Negatives  = 134066.0 
+False Negatives =  20959.0 AUC Score       = 0.888560 
+Runtime         =  0:00:31 
+2022-04-02 21:38:40,078 INFO 
+################################################################################
+Training -    6                                                                                
+Total loss      = 0.401399 Rand Index      = 0.821752 
+F-score         =   0.8408 Recall          =   0.8986 
+Precision       =   0.7900 True Positives  = 446096.0 
+False Positives = 118618.0 True Negatives  = 332819.0 
+False Negatives =  50338.0 AUC Score       = 0.887881 
+Runtime         =  0:05:56 
+2022-04-02 21:39:11,540 INFO 
+Validation -    6                                                                                
+Total loss      = 0.403395 Rand Index      = 0.821791 
+F-score         =   0.8419 Recall          =   0.9064 
+Precision       =   0.7860 True Positives  = 179918.0 
+False Positives =  48995.0 True Negatives  = 131665.0 
+False Negatives =  18573.0 AUC Score       = 0.885120 
+Runtime         =  0:00:31 
+2022-04-02 21:45:24,322 INFO 
+################################################################################
+Training -    7                                                                                
+Total loss      = 0.398481 Rand Index      = 0.822746 
+F-score         =   0.8418 Recall          =   0.9003 
+Precision       =   0.7904 True Positives  = 446929.0 
+False Positives = 118509.0 True Negatives  = 332928.0 
+False Negatives =  49505.0 AUC Score       = 0.889182 
+Runtime         =  0:06:12 
+2022-04-02 21:45:55,080 INFO 
+Validation -    7                                                                                
+Total loss      = 0.386782 Rand Index      = 0.827805 
+F-score         =   0.8467 Recall          =   0.9083 
+Precision       =   0.7929 True Positives  = 180288.0 
+False Positives =  47085.0 True Negatives  = 133575.0 
+False Negatives =  18203.0 AUC Score       = 0.897686 
+Runtime         =  0:00:30 
+2022-04-02 21:52:01,034 INFO 
+################################################################################
+Training -    8                                                                                
+Total loss      = 0.391466 Rand Index      = 0.826365 
+F-score         =   0.8446 Recall          =   0.9011 
+Precision       =   0.7948 True Positives  = 447345.0 
+False Positives = 115495.0 True Negatives  = 335942.0 
+False Negatives =  49089.0 AUC Score       = 0.893939 
+Runtime         =  0:06:05 
+2022-04-02 21:52:31,973 INFO 
+Validation -    8                                                                                
+Total loss      = 0.384893 Rand Index      = 0.830144 
+F-score         =   0.8485 Recall          =   0.9083 
+Precision       =   0.7960 True Positives  = 180296.0 
+False Positives =  46206.0 True Negatives  = 134454.0 
+False Negatives =  18195.0 AUC Score       = 0.898379 
+Runtime         =  0:00:30 
+2022-04-02 21:58:17,589 INFO 
+################################################################################
+Training -    9                                                                                
+Total loss      = 0.389788 Rand Index      = 0.826535 
+F-score         =   0.8446 Recall          =   0.8998 
+Precision       =   0.7957 True Positives  = 446671.0 
+False Positives = 114659.0 True Negatives  = 336778.0 
+False Negatives =  49763.0 AUC Score       = 0.895850 
+Runtime         =  0:05:45 
+2022-04-02 21:58:48,353 INFO 
+Validation -    9                                                                                
+Total loss      = 0.392762 Rand Index      = 0.824893 
+F-score         =   0.8424 Recall          =   0.8941 
+Precision       =   0.7964 True Positives  = 177467.0 
+False Positives =  45368.0 True Negatives  = 135292.0 
+False Negatives =  21024.0 AUC Score       = 0.893040 
+Runtime         =  0:00:30 
+2022-04-02 22:04:46,187 INFO 
+################################################################################
+Training -   10                                                                                
+Total loss      = 0.389387 Rand Index      = 0.826450 
+F-score         =   0.8442 Recall          =   0.8978 
+Precision       =   0.7967 True Positives  = 445683.0 
+False Positives = 113752.0 True Negatives  = 337685.0 
+False Negatives =  50751.0 AUC Score       = 0.896111 
+Runtime         =  0:05:57 
+2022-04-02 22:05:25,868 INFO 
+Validation -   10                                                                                
+Total loss      = 0.384981 Rand Index      = 0.828770 
+F-score         =   0.8465 Recall          =   0.9017 
+Precision       =   0.7976 True Positives  = 178977.0 
+False Positives =  45408.0 True Negatives  = 135252.0 
+False Negatives =  19514.0 AUC Score       = 0.899162 
+Runtime         =  0:00:39 
+2022-04-02 22:11:13,558 INFO 
+################################################################################
+Training -   11                                                                                
+Total loss      = 0.391381 Rand Index      = 0.825175 
+F-score         =   0.8431 Recall          =   0.8969 
+Precision       =   0.7954 True Positives  = 445229.0 
+False Positives = 114507.0 True Negatives  = 336930.0 
+False Negatives =  51205.0 AUC Score       = 0.894347 
+Runtime         =  0:05:47 
+2022-04-02 22:11:44,860 INFO 
+Validation -   11                                                                                
+Total loss      = 0.399597 Rand Index      = 0.823638 
+F-score         =   0.8430 Recall          =   0.9044 
+Precision       =   0.7894 True Positives  = 179517.0 
+False Positives =  47894.0 True Negatives  = 132766.0 
+False Negatives =  18974.0 AUC Score       = 0.885747 
+Runtime         =  0:00:31 
+2022-04-02 22:17:28,519 INFO 
+################################################################################
+Training -   12                                                                                
+Total loss      = 0.398151 Rand Index      = 0.824242 
+F-score         =   0.8434 Recall          =   0.9034 
+Precision       =   0.7908 True Positives  = 448501.0 
+False Positives = 118663.0 True Negatives  = 332774.0 
+False Negatives =  47933.0 AUC Score       = 0.886881 
+Runtime         =  0:05:43 
+2022-04-02 22:17:59,457 INFO 
+Validation -   12                                                                                
+Total loss      = 0.397392 Rand Index      = 0.825136 
+F-score         =   0.8437 Recall          =   0.9017 
+Precision       =   0.7928 True Positives  = 178972.0 
+False Positives =  46781.0 True Negatives  = 133879.0 
+False Negatives =  19519.0 AUC Score       = 0.887001 
+Runtime         =  0:00:30 
+2022-04-02 22:23:42,333 INFO 
+################################################################################
+Training -   13                                                                                
+Total loss      = 0.397178 Rand Index      = 0.824835 
+F-score         =   0.8438 Recall          =   0.9034 
+Precision       =   0.7916 True Positives  = 448472.0 
+False Positives = 118072.0 True Negatives  = 333365.0 
+False Negatives =  47962.0 AUC Score       = 0.887584 
+Runtime         =  0:05:42 
+2022-04-02 22:24:14,354 INFO 
+Validation -   13                                                                                
+Total loss      = 0.396260 Rand Index      = 0.825584 
+F-score         =   0.8449 Recall          =   0.9077 
+Precision       =   0.7903 True Positives  = 180173.0 
+False Positives =  47812.0 True Negatives  = 132848.0 
+False Negatives =  18318.0 AUC Score       = 0.888026 
+Runtime         =  0:00:32 
+2022-04-02 22:30:11,634 INFO 
+################################################################################
+Training -   14                                                                                
+Total loss      = 0.396304 Rand Index      = 0.825254 
+F-score         =   0.8442 Recall          =   0.9039 
+Precision       =   0.7919 True Positives  = 448709.0 
+False Positives = 117912.0 True Negatives  = 333525.0 
+False Negatives =  47725.0 AUC Score       = 0.888258 
+Runtime         =  0:05:57 
+2022-04-02 22:30:42,498 INFO 
+Validation -   14                                                                                
+Total loss      = 0.395191 Rand Index      = 0.826111 
+F-score         =   0.8447 Recall          =   0.9030 
+Precision       =   0.7934 True Positives  = 179239.0 
+False Positives =  46678.0 True Negatives  = 133982.0 
+False Negatives =  19252.0 AUC Score       = 0.888867 
+Runtime         =  0:00:30 
+2022-04-02 22:36:52,354 INFO 
+################################################################################
+Training -   15                                                                                
+Total loss      = 0.395189 Rand Index      = 0.825661 
+F-score         =   0.8445 Recall          =   0.9038 
+Precision       =   0.7925 True Positives  = 448690.0 
+False Positives = 117507.0 True Negatives  = 333930.0 
+False Negatives =  47744.0 AUC Score       = 0.889218 
+Runtime         =  0:06:09 
+2022-04-02 22:37:23,507 INFO 
+Validation -   15                                                                                
+Total loss      = 0.393968 Rand Index      = 0.826673 
+F-score         =   0.8457 Recall          =   0.9072 
+Precision       =   0.7920 True Positives  = 180063.0 
+False Positives =  47289.0 True Negatives  = 133371.0 
+False Negatives =  18428.0 AUC Score       = 0.889825 
+Runtime         =  0:00:31 
+2022-04-02 22:43:10,501 INFO 
+################################################################################
+Training -   16                                                                                
+Total loss      = 0.394040 Rand Index      = 0.826039 
+F-score         =   0.8448 Recall          =   0.9037 
+Precision       =   0.7930 True Positives  = 448645.0 
+False Positives = 117104.0 True Negatives  = 334333.0 
+False Negatives =  47789.0 AUC Score       = 0.890170 
+Runtime         =  0:05:46 
+2022-04-02 22:43:41,088 INFO 
+Validation -   16                                                                                
+Total loss      = 0.393005 Rand Index      = 0.827135 
+F-score         =   0.8463 Recall          =   0.9090 
+Precision       =   0.7917 True Positives  = 180430.0 
+False Positives =  47481.0 True Negatives  = 133179.0 
+False Negatives =  18061.0 AUC Score       = 0.890569 
+Runtime         =  0:00:30 
+2022-04-02 22:49:26,221 INFO 
+################################################################################
+Training -   17                                                                                
+Total loss      = 0.392883 Rand Index      = 0.826783 
+F-score         =   0.8453 Recall          =   0.9038 
+Precision       =   0.7940 True Positives  = 448677.0 
+False Positives = 116430.0 True Negatives  = 335007.0 
+False Negatives =  47757.0 AUC Score       = 0.891072 
+Runtime         =  0:05:45 
+2022-04-02 22:49:57,696 INFO 
+Validation -   17                                                                                
+Total loss      = 0.392076 Rand Index      = 0.827372 
+F-score         =   0.8455 Recall          =   0.9020 
+Precision       =   0.7956 True Positives  = 179038.0 
+False Positives =  45999.0 True Negatives  = 134661.0 
+False Negatives =  19453.0 AUC Score       = 0.891221 
+Runtime         =  0:00:31 
+2022-04-02 22:55:46,832 INFO 
+################################################################################
+Training -   18                                                                                
+Total loss      = 0.392078 Rand Index      = 0.827067 
+F-score         =   0.8455 Recall          =   0.9035 
+Precision       =   0.7945 True Positives  = 448541.0 
+False Positives = 116025.0 True Negatives  = 335412.0 
+False Negatives =  47893.0 AUC Score       = 0.891690 
+Runtime         =  0:05:49 
+2022-04-02 22:56:17,950 INFO 
+Validation -   18                                                                                
+Total loss      = 0.391814 Rand Index      = 0.827198 
+F-score         =   0.8438 Recall          =   0.8913 
+Precision       =   0.8011 True Positives  = 176906.0 
+False Positives =  43933.0 True Negatives  = 136727.0 
+False Negatives =  21585.0 AUC Score       = 0.891919 
+Runtime         =  0:00:31 
+2022-04-02 23:02:20,414 INFO 
+################################################################################
+Training -   19                                                                                
+Total loss      = 0.391100 Rand Index      = 0.827590 
+F-score         =   0.8459 Recall          =   0.9036 
+Precision       =   0.7951 True Positives  = 448599.0 
+False Positives = 115587.0 True Negatives  = 335850.0 
+False Negatives =  47835.0 AUC Score       = 0.892443 
+Runtime         =  0:06:02 
+2022-04-02 23:02:52,069 INFO 
+Validation -   19                                                                                
+Total loss      = 0.390185 Rand Index      = 0.828003 
+F-score         =   0.8470 Recall          =   0.9091 
+Precision       =   0.7928 True Positives  = 180447.0 
+False Positives =  47169.0 True Negatives  = 133491.0 
+False Negatives =  18044.0 AUC Score       = 0.892826 
+Runtime         =  0:00:31 
+2022-04-02 23:08:51,597 INFO 
+################################################################################
+Training -   20                                                                                
+Total loss      = 0.390194 Rand Index      = 0.827997 
+F-score         =   0.8463 Recall          =   0.9040 
+Precision       =   0.7955 True Positives  = 448765.0 
+False Positives = 115368.0 True Negatives  = 336069.0 
+False Negatives =  47669.0 AUC Score       = 0.893142 
+Runtime         =  0:05:59 
+2022-04-02 23:09:30,466 INFO 
+Validation -   20                                                                                
+Total loss      = 0.389662 Rand Index      = 0.828206 
+F-score         =   0.8457 Recall          =   0.8992 
+Precision       =   0.7982 True Positives  = 178486.0 
+False Positives =  45131.0 True Negatives  = 135529.0 
+False Negatives =  20005.0 AUC Score       = 0.893188 
+Runtime         =  0:00:38 
+2022-04-02 23:15:43,241 INFO 
+################################################################################
+Training -   21                                                                                
+Total loss      = 0.389342 Rand Index      = 0.828356 
+F-score         =   0.8465 Recall          =   0.9037 
+Precision       =   0.7961 True Positives  = 448636.0 
+False Positives = 114898.0 True Negatives  = 336539.0 
+False Negatives =  47798.0 AUC Score       = 0.893811 
+Runtime         =  0:06:12 
+2022-04-02 23:16:13,875 INFO 
+Validation -   21                                                                                
+Total loss      = 0.389039 Rand Index      = 0.828200 
+F-score         =   0.8475 Recall          =   0.9120 
+Precision       =   0.7916 True Positives  = 181018.0 
+False Positives =  47665.0 True Negatives  = 132995.0 
+False Negatives =  17473.0 AUC Score       = 0.894000 
+Runtime         =  0:00:30 
+2022-04-02 23:20:29,698 INFO 
+################################################################################
+Training -   22                                                                                
+Total loss      = 0.388549 Rand Index      = 0.828615 
+F-score         =   0.8467 Recall          =   0.9036 
+Precision       =   0.7965 True Positives  = 448600.0 
+False Positives = 114617.0 True Negatives  = 336820.0 
+False Negatives =  47834.0 AUC Score       = 0.894320 
+Runtime         =  0:04:15 
+2022-04-02 23:21:08,680 INFO 
+Validation -   22                                                                                
+Total loss      = 0.388451 Rand Index      = 0.828802 
+F-score         =   0.8468 Recall          =   0.9041 
+Precision       =   0.7964 True Positives  = 179460.0 
+False Positives =  45879.0 True Negatives  = 134781.0 
+False Negatives =  19031.0 AUC Score       = 0.894043 
+Runtime         =  0:00:38 
+2022-04-02 23:26:58,707 INFO 
+################################################################################
+Training -   23                                                                                
+Total loss      = 0.388465 Rand Index      = 0.828793 
+F-score         =   0.8469 Recall          =   0.9038 
+Precision       =   0.7967 True Positives  = 448679.0 
+False Positives = 114527.0 True Negatives  = 336910.0 
+False Negatives =  47755.0 AUC Score       = 0.894338 
+Runtime         =  0:05:50 
+2022-04-02 23:27:30,409 INFO 
+Validation -   23                                                                                
+Total loss      = 0.388389 Rand Index      = 0.828757 
+F-score         =   0.8465 Recall          =   0.9019 
+Precision       =   0.7975 True Positives  = 179011.0 
+False Positives =  45447.0 True Negatives  = 135213.0 
+False Negatives =  19480.0 AUC Score       = 0.894114 
+Runtime         =  0:00:31 
+2022-04-02 23:32:20,630 INFO 
+################################################################################
+Training -   24                                                                                
+Total loss      = 0.388423 Rand Index      = 0.828832 
+F-score         =   0.8469 Recall          =   0.9038 
+Precision       =   0.7967 True Positives  = 448700.0 
+False Positives = 114511.0 True Negatives  = 336926.0 
+False Negatives =  47734.0 AUC Score       = 0.894362 
+Runtime         =  0:04:50 
+2022-04-02 23:32:52,112 INFO 
+Validation -   24                                                                                
+Total loss      = 0.388301 Rand Index      = 0.828839 
+F-score         =   0.8471 Recall          =   0.9055 
+Precision       =   0.7957 True Positives  = 179729.0 
+False Positives =  46134.0 True Negatives  = 134526.0 
+False Negatives =  18762.0 AUC Score       = 0.894162 
+Runtime         =  0:00:31 
+2022-04-02 23:38:42,271 INFO 
+################################################################################
+Training -   25                                                                                
+Total loss      = 0.388306 Rand Index      = 0.828874 
+F-score         =   0.8469 Recall          =   0.9040 
+Precision       =   0.7967 True Positives  = 448781.0 
+False Positives = 114552.0 True Negatives  = 336885.0 
+False Negatives =  47653.0 AUC Score       = 0.894442 
+Runtime         =  0:05:50 
+2022-04-02 23:39:13,364 INFO 
+Validation -   25                                                                                
+Total loss      = 0.388289 Rand Index      = 0.828696 
+F-score         =   0.8470 Recall          =   0.9054 
+Precision       =   0.7956 True Positives  = 179714.0 
+False Positives =  46173.0 True Negatives  = 134487.0 
+False Negatives =  18777.0 AUC Score       = 0.894169 
+Runtime         =  0:00:31 
+2022-04-02 23:45:39,929 INFO 
+################################################################################
+Training -   26                                                                                
+Total loss      = 0.388224 Rand Index      = 0.828947 
+F-score         =   0.8470 Recall          =   0.9041 
+Precision       =   0.7967 True Positives  = 448845.0 
+False Positives = 114547.0 True Negatives  = 336890.0 
+False Negatives =  47589.0 AUC Score       = 0.894515 
+Runtime         =  0:06:26 
+2022-04-02 23:46:13,936 INFO 
+Validation -   26                                                                                
+Total loss      = 0.388173 Rand Index      = 0.828942 
+F-score         =   0.8464 Recall          =   0.9006 
+Precision       =   0.7984 True Positives  = 178761.0 
+False Positives =  45127.0 True Negatives  = 135533.0 
+False Negatives =  19730.0 AUC Score       = 0.894294 
+Runtime         =  0:00:34 
+2022-04-02 23:52:02,318 INFO 
+################################################################################
+Training -   27                                                                                
+Total loss      = 0.388134 Rand Index      = 0.829013 
+F-score         =   0.8471 Recall          =   0.9041 
+Precision       =   0.7968 True Positives  = 448805.0 
+False Positives = 114445.0 True Negatives  = 336992.0 
+False Negatives =  47629.0 AUC Score       = 0.894561 
+Runtime         =  0:05:48 
+2022-04-02 23:52:33,411 INFO 
+Validation -   27                                                                                
+Total loss      = 0.388088 Rand Index      = 0.828857 
+F-score         =   0.8469 Recall          =   0.9043 
+Precision       =   0.7964 True Positives  = 179496.0 
+False Positives =  45894.0 True Negatives  = 134766.0 
+False Negatives =  18995.0 AUC Score       = 0.894344 
+Runtime         =  0:00:31 
+2022-04-02 23:58:19,212 INFO 
+################################################################################
+Training -   28                                                                                
+Total loss      = 0.388104 Rand Index      = 0.828944 
+F-score         =   0.8470 Recall          =   0.9041 
+Precision       =   0.7967 True Positives  = 448841.0 
+False Positives = 114546.0 True Negatives  = 336891.0 
+False Negatives =  47593.0 AUC Score       = 0.894598 
+Runtime         =  0:05:45 
+2022-04-02 23:58:50,483 INFO 
+Validation -   28                                                                                
+Total loss      = 0.388000 Rand Index      = 0.828978 
+F-score         =   0.8469 Recall          =   0.9035 
+Precision       =   0.7970 True Positives  = 179328.0 
+False Positives =  45680.0 True Negatives  = 134980.0 
+False Negatives =  19163.0 AUC Score       = 0.894361 
+Runtime         =  0:00:31 
+2022-04-03 00:04:43,535 INFO 
+################################################################################
+Training -   29                                                                                
+Total loss      = 0.388051 Rand Index      = 0.828994 
+F-score         =   0.8470 Recall          =   0.9041 
+Precision       =   0.7968 True Positives  = 448825.0 
+False Positives = 114483.0 True Negatives  = 336954.0 
+False Negatives =  47609.0 AUC Score       = 0.894617 
+Runtime         =  0:05:53 
+2022-04-03 00:05:14,155 INFO 
+Validation -   29                                                                                
+Total loss      = 0.387917 Rand Index      = 0.828947 
+F-score         =   0.8469 Recall          =   0.9039 
+Precision       =   0.7967 True Positives  = 179415.0 
+False Positives =  45779.0 True Negatives  = 134881.0 
+False Negatives =  19076.0 AUC Score       = 0.894435 
+Runtime         =  0:00:30 
+2022-04-03 00:11:03,069 INFO 
+################################################################################
+Training -   30                                                                                
+Total loss      = 0.387970 Rand Index      = 0.829020 
+F-score         =   0.8471 Recall          =   0.9041 
+Precision       =   0.7968 True Positives  = 448829.0 
+False Positives = 114462.0 True Negatives  = 336975.0 
+False Negatives =  47605.0 AUC Score       = 0.894688 
+Runtime         =  0:05:48 
+2022-04-03 00:11:34,573 INFO 
+Validation -   30                                                                                
+Total loss      = 0.387874 Rand Index      = 0.829065 
+F-score         =   0.8468 Recall          =   0.9025 
+Precision       =   0.7976 True Positives  = 179130.0 
+False Positives =  45449.0 True Negatives  = 135211.0 
+False Negatives =  19361.0 AUC Score       = 0.894464 
+Runtime         =  0:00:31 
+2022-04-03 00:17:45,155 INFO 
+################################################################################
+Training -   31                                                                                
+Total loss      = 0.387906 Rand Index      = 0.829149 
+F-score         =   0.8472 Recall          =   0.9043 
+Precision       =   0.7969 True Positives  = 448923.0 
+False Positives = 114434.0 True Negatives  = 337003.0 
+False Negatives =  47511.0 AUC Score       = 0.894736 
+Runtime         =  0:06:10 
+2022-04-03 00:18:16,682 INFO 
+Validation -   31                                                                                
+Total loss      = 0.387743 Rand Index      = 0.829021 
+F-score         =   0.8470 Recall          =   0.9041 
+Precision       =   0.7967 True Positives  = 179450.0 
+False Positives =  45786.0 True Negatives  = 134874.0 
+False Negatives =  19041.0 AUC Score       = 0.894530 
+Runtime         =  0:00:31 
+2022-04-03 00:24:05,159 INFO 
+################################################################################
+Training -   32                                                                                
+Total loss      = 0.387823 Rand Index      = 0.829146 
+F-score         =   0.8472 Recall          =   0.9041 
+Precision       =   0.7970 True Positives  = 448813.0 
+False Positives = 114327.0 True Negatives  = 337110.0 
+False Negatives =  47621.0 AUC Score       = 0.894796 
+Runtime         =  0:05:48 
+2022-04-03 00:24:36,575 INFO 
+Validation -   32                                                                                
+Total loss      = 0.387648 Rand Index      = 0.829071 
+F-score         =   0.8471 Recall          =   0.9047 
+Precision       =   0.7965 True Positives  = 179572.0 
+False Positives =  45889.0 True Negatives  = 134771.0 
+False Negatives =  18919.0 AUC Score       = 0.894605 
+Runtime         =  0:00:31 
+2022-04-03 00:30:18,876 INFO 
+################################################################################
+Training -   33                                                                                
+Total loss      = 0.387718 Rand Index      = 0.829235 
+F-score         =   0.8473 Recall          =   0.9043 
+Precision       =   0.7970 True Positives  = 448904.0 
+False Positives = 114333.0 True Negatives  = 337104.0 
+False Negatives =  47530.0 AUC Score       = 0.894875 
+Runtime         =  0:05:42 
+2022-04-03 00:30:50,212 INFO 
+Validation -   33                                                                                
+Total loss      = 0.387611 Rand Index      = 0.829216 
+F-score         =   0.8470 Recall          =   0.9029 
+Precision       =   0.7976 True Positives  = 179213.0 
+False Positives =  45475.0 True Negatives  = 135185.0 
+False Negatives =  19278.0 AUC Score       = 0.894629 
+Runtime         =  0:00:31 
+2022-04-03 00:36:45,081 INFO 
+################################################################################
+Training -   34                                                                                
+Total loss      = 0.387645 Rand Index      = 0.829202 
+F-score         =   0.8472 Recall          =   0.9042 
+Precision       =   0.7970 True Positives  = 448865.0 
+False Positives = 114325.0 True Negatives  = 337112.0 
+False Negatives =  47569.0 AUC Score       = 0.894936 
+Runtime         =  0:05:54 
+2022-04-03 00:37:16,071 INFO 
+Validation -   34                                                                                
+Total loss      = 0.387576 Rand Index      = 0.829240 
+F-score         =   0.8471 Recall          =   0.9035 
+Precision       =   0.7973 True Positives  = 179337.0 
+False Positives =  45590.0 True Negatives  = 135070.0 
+False Negatives =  19154.0 AUC Score       = 0.894619 
+Runtime         =  0:00:30 
+2022-04-03 00:43:02,743 INFO 
+################################################################################
+Training -   35                                                                                
+Total loss      = 0.387569 Rand Index      = 0.829283 
+F-score         =   0.8473 Recall          =   0.9042 
+Precision       =   0.7971 True Positives  = 448869.0 
+False Positives = 114253.0 True Negatives  = 337184.0 
+False Negatives =  47565.0 AUC Score       = 0.894977 
+Runtime         =  0:05:46 
+2022-04-03 00:43:35,060 INFO 
+Validation -   35                                                                                
+Total loss      = 0.387488 Rand Index      = 0.829263 
+F-score         =   0.8471 Recall          =   0.9034 
+Precision       =   0.7974 True Positives  = 179318.0 
+False Positives =  45562.0 True Negatives  = 135098.0 
+False Negatives =  19173.0 AUC Score       = 0.894707 
+Runtime         =  0:00:32 
+2022-04-03 00:49:36,662 INFO 
+################################################################################
+Training -   36                                                                                
+Total loss      = 0.387542 Rand Index      = 0.829319 
+F-score         =   0.8473 Recall          =   0.9043 
+Precision       =   0.7971 True Positives  = 448907.0 
+False Positives = 114257.0 True Negatives  = 337180.0 
+False Negatives =  47527.0 AUC Score       = 0.895008 
+Runtime         =  0:06:01 
+2022-04-03 00:50:16,100 INFO 
+Validation -   36                                                                                
+Total loss      = 0.387417 Rand Index      = 0.829245 
+F-score         =   0.8472 Recall          =   0.9042 
+Precision       =   0.7969 True Positives  = 179484.0 
+False Positives =  45735.0 True Negatives  = 134925.0 
+False Negatives =  19007.0 AUC Score       = 0.894760 
+Runtime         =  0:00:39 
+2022-04-03 00:56:04,180 INFO 
+################################################################################
+Training -   37                                                                                
+Total loss      = 0.387468 Rand Index      = 0.829275 
+F-score         =   0.8473 Recall          =   0.9041 
+Precision       =   0.7971 True Positives  = 448834.0 
+False Positives = 114225.0 True Negatives  = 337212.0 
+False Negatives =  47600.0 AUC Score       = 0.895053 
+Runtime         =  0:05:48 
+2022-04-03 00:56:35,696 INFO 
+Validation -   37                                                                                
+Total loss      = 0.387354 Rand Index      = 0.829276 
+F-score         =   0.8474 Recall          =   0.9054 
+Precision       =   0.7964 True Positives  = 179717.0 
+False Positives =  45956.0 True Negatives  = 134704.0 
+False Negatives =  18774.0 AUC Score       = 0.894825 
+Runtime         =  0:00:31 
+2022-04-03 01:02:25,712 INFO 
+################################################################################
+Training -   38                                                                                
+Total loss      = 0.387368 Rand Index      = 0.829491 
+F-score         =   0.8475 Recall          =   0.9045 
+Precision       =   0.7972 True Positives  = 449007.0 
+False Positives = 114194.0 True Negatives  = 337243.0 
+False Negatives =  47427.0 AUC Score       = 0.895118 
+Runtime         =  0:05:50 
+2022-04-03 01:02:57,185 INFO 
+Validation -   38                                                                                
+Total loss      = 0.387304 Rand Index      = 0.829461 
+F-score         =   0.8474 Recall          =   0.9047 
+Precision       =   0.7970 True Positives  = 179571.0 
+False Positives =  45740.0 True Negatives  = 134920.0 
+False Negatives =  18920.0 AUC Score       = 0.894839 
+Runtime         =  0:00:31 
+2022-04-03 01:08:44,514 INFO 
+################################################################################
+Training -   39                                                                                
+Total loss      = 0.387294 Rand Index      = 0.829395 
+F-score         =   0.8474 Recall          =   0.9043 
+Precision       =   0.7972 True Positives  = 448918.0 
+False Positives = 114196.0 True Negatives  = 337241.0 
+False Negatives =  47516.0 AUC Score       = 0.895184 
+Runtime         =  0:05:47 
+2022-04-03 01:09:16,291 INFO 
+Validation -   39                                                                                
+Total loss      = 0.387259 Rand Index      = 0.829303 
+F-score         =   0.8470 Recall          =   0.9028 
+Precision       =   0.7978 True Positives  = 179201.0 
+False Positives =  45430.0 True Negatives  = 135230.0 
+False Negatives =  19290.0 AUC Score       = 0.894882 
+Runtime         =  0:00:31 
+2022-04-03 01:15:02,149 INFO 
+################################################################################
+Training -   40                                                                                
+Total loss      = 0.387229 Rand Index      = 0.829455 
+F-score         =   0.8474 Recall          =   0.9042 
+Precision       =   0.7973 True Positives  = 448873.0 
+False Positives = 114094.0 True Negatives  = 337343.0 
+False Negatives =  47561.0 AUC Score       = 0.895221 
+Runtime         =  0:05:45 
+2022-04-03 01:15:32,556 INFO 
+Validation -   40                                                                                
+Total loss      = 0.387259 Rand Index      = 0.829448 
+F-score         =   0.8476 Recall          =   0.9057 
+Precision       =   0.7964 True Positives  = 179778.0 
+False Positives =  45952.0 True Negatives  = 134708.0 
+False Negatives =  18713.0 AUC Score       = 0.894900 
+Runtime         =  0:00:30 
+2022-04-03 01:21:16,761 INFO 
+################################################################################
+Training -   41                                                                                
+Total loss      = 0.387201 Rand Index      = 0.829418 
+F-score         =   0.8474 Recall          =   0.9042 
+Precision       =   0.7973 True Positives  = 448896.0 
+False Positives = 114152.0 True Negatives  = 337285.0 
+False Negatives =  47538.0 AUC Score       = 0.895254 
+Runtime         =  0:05:44 
+2022-04-03 01:21:48,122 INFO 
+Validation -   41                                                                                
+Total loss      = 0.387104 Rand Index      = 0.829501 
+F-score         =   0.8472 Recall          =   0.9031 
+Precision       =   0.7979 True Positives  = 179258.0 
+False Positives =  45412.0 True Negatives  = 135248.0 
+False Negatives =  19233.0 AUC Score       = 0.894979 
+Runtime         =  0:00:31 
+2022-04-03 01:27:34,950 INFO 
+################################################################################
+Training -   42                                                                                
+Total loss      = 0.387094 Rand Index      = 0.829571 
+F-score         =   0.8475 Recall          =   0.9043 
+Precision       =   0.7974 True Positives  = 448924.0 
+False Positives = 114035.0 True Negatives  = 337402.0 
+False Negatives =  47510.0 AUC Score       = 0.895307 
+Runtime         =  0:05:46 
+2022-04-03 01:28:05,797 INFO 
+Validation -   42                                                                                
+Total loss      = 0.387061 Rand Index      = 0.829540 
+F-score         =   0.8474 Recall          =   0.9041 
+Precision       =   0.7974 True Positives  = 179456.0 
+False Positives =  45595.0 True Negatives  = 135065.0 
+False Negatives =  19035.0 AUC Score       = 0.895003 
+Runtime         =  0:00:30 
+2022-04-03 01:33:51,799 INFO 
+################################################################################
+Training -   43                                                                                
+Total loss      = 0.387081 Rand Index      = 0.829585 
+F-score         =   0.8475 Recall          =   0.9043 
+Precision       =   0.7974 True Positives  = 448943.0 
+False Positives = 114040.0 True Negatives  = 337397.0 
+False Negatives =  47491.0 AUC Score       = 0.895315 
+Runtime         =  0:05:45 
+2022-04-03 01:34:22,877 INFO 
+Validation -   43                                                                                
+Total loss      = 0.387050 Rand Index      = 0.829464 
+F-score         =   0.8474 Recall          =   0.9044 
+Precision       =   0.7971 True Positives  = 179524.0 
+False Positives =  45692.0 True Negatives  = 134968.0 
+False Negatives =  18967.0 AUC Score       = 0.895014 
+Runtime         =  0:00:31 
+2022-04-03 01:40:10,592 INFO 
+################################################################################
+Training -   44                                                                                
+Total loss      = 0.387055 Rand Index      = 0.829617 
+F-score         =   0.8476 Recall          =   0.9044 
+Precision       =   0.7974 True Positives  = 448972.0 
+False Positives = 114039.0 True Negatives  = 337398.0 
+False Negatives =  47462.0 AUC Score       = 0.895334 
+Runtime         =  0:05:47 
+2022-04-03 01:40:41,649 INFO 
+Validation -   44                                                                                
+Total loss      = 0.387036 Rand Index      = 0.829495 
+F-score         =   0.8474 Recall          =   0.9045 
+Precision       =   0.7971 True Positives  = 179545.0 
+False Positives =  45701.0 True Negatives  = 134959.0 
+False Negatives =  18946.0 AUC Score       = 0.895031 
+Runtime         =  0:00:31 
+2022-04-03 01:46:27,660 INFO 
+################################################################################
+Training -   45                                                                                
+Total loss      = 0.387056 Rand Index      = 0.829535 
+F-score         =   0.8475 Recall          =   0.9044 
+Precision       =   0.7974 True Positives  = 448955.0 
+False Positives = 114100.0 True Negatives  = 337337.0 
+False Negatives =  47479.0 AUC Score       = 0.895336 
+Runtime         =  0:05:46 
+2022-04-03 01:46:59,024 INFO 
+Validation -   45                                                                                
+Total loss      = 0.387030 Rand Index      = 0.829464 
+F-score         =   0.8474 Recall          =   0.9043 
+Precision       =   0.7972 True Positives  = 179505.0 
+False Positives =  45673.0 True Negatives  = 134987.0 
+False Negatives =  18986.0 AUC Score       = 0.895034 
+Runtime         =  0:00:31 
+2022-04-03 01:52:48,483 INFO 
+################################################################################
+Training -   46                                                                                
+Total loss      = 0.387045 Rand Index      = 0.829597 
+F-score         =   0.8476 Recall          =   0.9045 
+Precision       =   0.7974 True Positives  = 449023.0 
+False Positives = 114109.0 True Negatives  = 337328.0 
+False Negatives =  47411.0 AUC Score       = 0.895343 
+Runtime         =  0:05:49 
+2022-04-03 01:53:20,095 INFO 
+Validation -   46                                                                                
+Total loss      = 0.387035 Rand Index      = 0.829495 
+F-score         =   0.8473 Recall          =   0.9037 
+Precision       =   0.7976 True Positives  = 179375.0 
+False Positives =  45531.0 True Negatives  = 135129.0 
+False Negatives =  19116.0 AUC Score       = 0.895033 
+Runtime         =  0:00:31 
+2022-04-03 01:59:12,775 INFO 
+################################################################################
+Training -   47                                                                                
+Total loss      = 0.387029 Rand Index      = 0.829547 
+F-score         =   0.8475 Recall          =   0.9041 
+Precision       =   0.7975 True Positives  = 448818.0 
+False Positives = 113951.0 True Negatives  = 337486.0 
+False Negatives =  47616.0 AUC Score       = 0.895358 
+Runtime         =  0:05:52 
+2022-04-03 01:59:44,377 INFO 
+Validation -   47                                                                                
+Total loss      = 0.387020 Rand Index      = 0.829469 
+F-score         =   0.8474 Recall          =   0.9047 
+Precision       =   0.7970 True Positives  = 179574.0 
+False Positives =  45740.0 True Negatives  = 134920.0 
+False Negatives =  18917.0 AUC Score       = 0.895045 
+Runtime         =  0:00:31 
+2022-04-03 02:05:38,467 INFO 
+################################################################################
+Training -   48                                                                                
+Total loss      = 0.387033 Rand Index      = 0.829576 
+F-score         =   0.8475 Recall          =   0.9044 
+Precision       =   0.7974 True Positives  = 448978.0 
+False Positives = 114084.0 True Negatives  = 337353.0 
+False Negatives =  47456.0 AUC Score       = 0.895353 
+Runtime         =  0:05:54 
+2022-04-03 02:06:09,437 INFO 
+Validation -   48                                                                                
+Total loss      = 0.387012 Rand Index      = 0.829509 
+F-score         =   0.8474 Recall          =   0.9043 
+Precision       =   0.7973 True Positives  = 179492.0 
+False Positives =  45643.0 True Negatives  = 135017.0 
+False Negatives =  18999.0 AUC Score       = 0.895049 
+Runtime         =  0:00:30 
+2022-04-03 02:12:14,864 INFO 
+################################################################################
+Training -   49                                                                                
+Total loss      = 0.387022 Rand Index      = 0.829556 
+F-score         =   0.8475 Recall          =   0.9042 
+Precision       =   0.7975 True Positives  = 448885.0 
+False Positives = 114010.0 True Negatives  = 337427.0 
+False Negatives =  47549.0 AUC Score       = 0.895360 
+Runtime         =  0:06:05 
+2022-04-03 02:12:46,082 INFO 
+Validation -   49                                                                                
+Total loss      = 0.387001 Rand Index      = 0.829477 
+F-score         =   0.8475 Recall          =   0.9048 
+Precision       =   0.7970 True Positives  = 179592.0 
+False Positives =  45755.0 True Negatives  = 134905.0 
+False Negatives =  18899.0 AUC Score       = 0.895060 
+Runtime         =  0:00:31 
+2022-04-03 02:18:51,472 INFO 
+################################################################################
+Training -   50                                                                                
+Total loss      = 0.387029 Rand Index      = 0.829583 
+F-score         =   0.8476 Recall          =   0.9045 
+Precision       =   0.7973 True Positives  = 449039.0 
+False Positives = 114138.0 True Negatives  = 337299.0 
+False Negatives =  47395.0 AUC Score       = 0.895353 
+Runtime         =  0:06:05 
+2022-04-03 02:19:22,715 INFO 
+Validation -   50                                                                                
+Total loss      = 0.387000 Rand Index      = 0.829509 
+F-score         =   0.8473 Recall          =   0.9038 
+Precision       =   0.7975 True Positives  = 179397.0 
+False Positives =  45548.0 True Negatives  = 135112.0 
+False Negatives =  19094.0 AUC Score       = 0.895058 
+Runtime         =  0:00:31 
+2022-04-03 02:19:30,517 INFO Best validation acc: 0.8301, best epoch: 8.
+2022-04-03 02:19:30,518 INFO Training runtime: 6:37:01
+2022-04-03 02:20:01,364 INFO 
+Test                                                                                
+Total loss      = 0.387335 Rand Index      = 0.828338 
+F-score         =   0.8464 Recall          =   0.9062 
+Precision       =   0.7940 True Positives  = 179273.0 
+False Positives =  46525.0 True Negatives  = 134784.0 
+False Negatives =  18559.0 AUC Score       = 0.897395 
+Runtime         =  0:00:30 
+2022-04-03 02:20:01,364 INFO Saving all to train_results/garnet/experiment_2022-04-02_19:42:29/summary
