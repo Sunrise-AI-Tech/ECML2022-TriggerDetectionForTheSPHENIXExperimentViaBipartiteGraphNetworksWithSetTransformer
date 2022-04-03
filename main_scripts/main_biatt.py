@@ -422,7 +422,7 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
     logging.info(f'Best validation acc: {best_val_ri:.4f}, best epoch: {best_epoch}.')
     logging.info(f'Training runtime: {str(datetime.now() - start_time).split(".")[0]}')
 
-    test_info = evaluate(test_data, model, epoch,
+    test_info = evaluate(test_data, best_model, epoch,
             use_energy=config['data']['use_energy'], use_momentum=config['data']['use_momentum'],
             use_radius=config['data']['use_radius']
         )
