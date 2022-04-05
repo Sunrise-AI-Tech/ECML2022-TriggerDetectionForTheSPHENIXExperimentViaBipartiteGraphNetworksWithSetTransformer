@@ -55,7 +55,7 @@ def parse_args():
     :return: argparser instance
     """
     argparser = argparse.ArgumentParser(description=__doc__)
-    argparser.add_argument('--config', default='configs/cluster_of_tracks_pns.yaml')
+    argparser.add_argument('--config', default='configs/gt_track_settrans.yaml')
     argparser.add_argument('-g', '--gpu', default='0', help='The gpu to run on')
     argparser.add_argument('--auto', action='store_true')
     argparser.add_argument('--save', dest='save', action='store_true', help='Whether to save all to disk')
@@ -316,9 +316,10 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
         del dconfig['momentum_disturb']
         del dconfig['radius_disturb']
 
-        train_data, val_data = get_data_loaders(**dconfig)
+        train_data, val_data, test_data = get_data_loaders(**dconfig)
         logging.info('Loaded %g training samples', len(train_data.dataset))
         logging.info('Loaded %g validation samples', len(val_data.dataset))
+        logging.info('Loaded %g test samples', len(test_data.dataset))
 
     # Create model instance
     model_pnl = None
@@ -481,6 +482,32 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
 
     logging.info(f'Best validation acc: {best_val_ri:.4f}, best epoch: {best_epoch}.')
     logging.info(f'Training runtime: {str(datetime.now() - start_time).split(".")[0]}')
+
+    test_info = evaluate(test_data, model_pnl, best_model, epoch,
+                use_energy=config['data']['use_energy'], use_momentum=config['data']['use_momentum'],
+                use_radius=config['data']['use_radius'], momentum_disturb=config['data']['momentum_disturb'],
+                radius_disturb=config['data']['radius_disturb']
+                )
+                
+    table = make_table(
+        ('Total loss', f"{test_info['loss']:.6f}"),
+        ('Rand Index', f"{test_info['ri']:.6f}"),
+        ('F-score', f"{test_info['fscore']:.4f}"),
+        ('Recall', f"{test_info['recall']:.4f}"),
+        ('Precision', f"{test_info['precision']:.4f}"),
+        ('True Positives', f"{test_info['true_positives']}"),
+        ('False Positives', f"{test_info['false_positives']}"),
+        ('True Negatives', f"{test_info['true_negatives']}"),
+        ('False Negatives', f"{test_info['false_negatives']}"),
+        ('AUC Score', f"{test_info['auroc']:.6f}"),
+        ('Runtime', f"{test_info['run_time']}")
+    )
+
+    logging.info('\n'.join((
+        '',
+        center_text(f"Test", ' '),
+        table
+    )))
 
     # Saving to disk
     if args.save:
