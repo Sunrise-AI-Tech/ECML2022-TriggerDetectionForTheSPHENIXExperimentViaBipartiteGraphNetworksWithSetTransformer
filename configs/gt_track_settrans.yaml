@@ -15,9 +15,9 @@ model:
   num_outputs: 1
   dim_output: 2
   num_inds: 32
-  dim_hidden: 256
+  dim_hidden: 128
   num_heads: 4
-  ln: False
+  ln: True
 
 
 data:
