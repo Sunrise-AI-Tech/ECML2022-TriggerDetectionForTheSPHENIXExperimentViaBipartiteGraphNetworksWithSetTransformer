@@ -1,7 +1,7 @@
 output_dir: train_results/set/
 tensorboard_output_dir: runs/set/
 
-name_on_wandb: transset-gttrack-fixerror
+name_on_wandb: transset-gttrack-ecml
 epochs: 50
 
 optimizer:
@@ -17,22 +17,25 @@ model:
   num_inds: 32
   dim_hidden: 128
   num_heads: 4
-  ln: False
+  ln: True
+
 
 data:
-        name: trkvec
-        input_dir: /home1/tingtingxuan/Data/parsed_trackvec/Signal
-        input_dir2: /home1/tingtingxuan/Data/parsed_trackvec/Background
-        use_radius: False
+        name: trkvec-ecml
+        train_input_dir: /home/giorgian/data/presplit/train_gt
+        valid_input_dir: /home/giorgian/data/presplit/valid_gt
+        test_input_dir: /home/giorgian/data/presplit/test_gt
+        n_train: 1000000
+        n_valid: 400000
+        n_test: 400000
+        add_geo_features: True
+        use_radius: True
+
         use_momentum: False
+        use_energy: False
+        batch_size: 32
+        n_workers: 4
+        load_complete_graph: False
         use_energy: False
         momentum_disturb: 0
         radius_disturb: 0
-        n_train: 500000 #693
-        n_valid: 100000 #433
-        batch_size: 32
-        n_workers: 8
-        n_folders: 2
-        n_folders: 2
-        load_complete_graph: False
-        add_geo_features: True

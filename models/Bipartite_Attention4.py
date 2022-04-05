@@ -24,7 +24,8 @@ class Bipartite_Attention4(nn.Module):
             layers_spec, # Tuple of (N, feature_dim, coordinate_dim)
             num_classes,
             hidden_activation='Tanh', 
-            aggregator_activation='potential'
+            aggregator_activation='potential',
+            ln=False,
             ):
         super(Bipartite_Attention4, self).__init__()
         _layers = []
@@ -38,6 +39,7 @@ class Bipartite_Attention4(nn.Module):
                         n_aggregators,
                         hidden_activation,
                         aggregator_activation,
+                        ln=ln,
                     )
             )
             prev_dim = feature_dim 
