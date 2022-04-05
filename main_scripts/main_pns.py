@@ -36,7 +36,6 @@ from models.SAGPool import SAGPoolNet
 from models.ParticleNetLaplace import ParticleNetLaplace
 from dataloaders import get_data_loaders
 from utils.log import write_checkpoint, load_config, load_checkpoint, config_logging, save_config, print_model_summary, get_terminal_columns, center_text, make_table
-from torch.utils.tensorboard import SummaryWriter
 from augmentators import TrackHitDropping, BackgroundTrackDropping
 from GCL.models import DualBranchContrast
 import GCL.losses as L
@@ -44,7 +43,7 @@ import GCL.losses as L
 class ArgDict:
     pass
 
-DEVICE = 'cuda'
+DEVICE = 'cuda:0'
 OLD_COLUMNS = None
 
 def parse_args():
@@ -162,7 +161,6 @@ def evaluate(data, model_pnl, model, epoch, loss_config=None, threshold=0.5, use
 
 
 def do_epoch(data, model_pnl, model, epoch, optimizer=None, threshold = 0.5, contrast=False, ce_weight=1, contrast_loss_fn=None, use_extra_pos=True, use_energy=False, use_momentum=False, use_radius=False):
-    global writer
     if optimizer is None:
         # validation epoch
         model.eval()
@@ -329,9 +327,6 @@ def do_epoch(data, model_pnl, model, epoch, optimizer=None, threshold = 0.5, con
     except ValueError:
         accum_info['auroc'] = 0
 
-    for m, v in accum_info.items():
-        writer.add_scalar(f'{m}/{phase}', v, epoch)
-           
     accum_info['run_time'] = datetime.now() - start_time
     accum_info['run_time'] = str(accum_info['run_time']).split(".")[0]
 
@@ -342,7 +337,6 @@ def do_epoch(data, model_pnl, model, epoch, optimizer=None, threshold = 0.5, con
     return accum_info
 
 def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
-    global writer
     start_time = datetime.now()
     seed = 42
     np.random.seed(seed)
@@ -358,12 +352,8 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
     config = load_config(args.config)
     hp = extract_hyperparameters(config)
 
-    if auto:
-        config['tensorboard_output_dir'] = parser_dict['tensorboard_output_dir']
-    
     config['output_dir'] = os.path.join(config['output_dir'], f'experiment_{start_time:%Y-%m-%d_%H:%M:%S}')
     os.makedirs(config['output_dir'], exist_ok=True)
-    config['tensorboard_output_dir'] = os.path.join(config['tensorboard_output_dir'], f'experiment_{start_time:%Y-%m-%d_%H:%M:%S}')
 
     # Setup logging
     file_handler = config_logging(verbose=args.verbose, output_dir=config['output_dir'],
@@ -392,13 +382,15 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
         logging.info('Loading training data and validation data')
         dconfig = copy.copy(config['data'])
 
-        del dconfig['use_momentum']
         del dconfig['use_energy']
-        del dconfig['use_radius']
+        del dconfig['use_momentum']
 
-        train_data, val_data = get_data_loaders(**dconfig)
+
+        train_data, val_data, test_data = get_data_loaders(**dconfig)
         logging.info('Loaded %g training samples', len(train_data.dataset))
         logging.info('Loaded %g validation samples', len(val_data.dataset))
+        logging.info('Loaded %g test samples', len(test_data.dataset))
+
 
     # Create model instance
     model_pnl = None
@@ -463,7 +455,6 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
     model_pnl.eval()
 
 
-    writer = SummaryWriter(log_dir=config['tensorboard_output_dir'])
     # Optimizer
     if config['optimizer']['type'] == 'Adam':
         optimizer = torch.optim.Adam(params=model.parameters(), lr=config['optimizer']['learning_rate'], weight_decay=config['optimizer']['weight_decay'])
@@ -575,6 +566,31 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
     logging.info(f'Best validation acc: {best_val_ri:.4f}, best epoch: {best_epoch}.')
     logging.info(f'Training runtime: {str(datetime.now() - start_time).split(".")[0]}')
 
+    test_info = evaluate(test_data, model_pnl, best_model, epoch,
+            use_energy=config['data']['use_energy'], use_momentum=config['data']['use_momentum'],
+            use_radius=config['data']['use_radius']
+        )
+
+    table = make_table(
+        ('Total loss', f"{test_info['loss']:.6f}"),
+        ('Rand Index', f"{test_info['ri']:.6f}"),
+        ('F-score', f"{test_info['fscore']:.4f}"),
+        ('Recall', f"{test_info['recall']:.4f}"),
+        ('Precision', f"{test_info['precision']:.4f}"),
+        ('True Positives', f"{test_info['true_positives']}"),
+        ('False Positives', f"{test_info['false_positives']}"),
+        ('True Negatives', f"{test_info['true_negatives']}"),
+        ('False Negatives', f"{test_info['false_negatives']}"),
+        ('AUC Score', f"{test_info['auroc']:.6f}"),
+        ('Runtime', f"{test_info['run_time']}")
+    )
+
+    logging.info('\n'.join((
+        '',
+        center_text(f"Test", ' '),
+        table
+    )))
+
     # Saving to disk
     if args.save:
         output_dir = os.path.join(config['output_dir'], 'summary')
@@ -603,30 +619,10 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
         best_df = pd.DataFrame(best_dict, index=[0])
         best_df.to_csv(os.path.join(output_dir, "best_val_results.csv"), index=False)
 
-    writer.add_hparams(hp, {
-        'auroc/validation': best_val_auroc,
-        'ri/validation': best_val_ri,
-    },
-    hparam_domain_discrete = {
-        'd_metric/adj_model': ['intertrack', 'einsum'],
-        'type/adj_model': ['particlenet-laplace', 'particlenet-lite-laplace'],
-        'type/optimizer': ['Adam', 'SGD'],
-        'load_complete_graph/data': [True, False],
-        'is_hierarchical/model': [True, False],
-        'use_extra_pos/contrast': [True, False],
-        'aug1/contrast': ['TrackHitDropping', 'NodeDropping', 'EdgeRemoving', 'BackgroundTrackDropping', 'Identity'],
-        'aug2/contrast': ['TrackHitDropping', 'NodeDropping', 'EdgeRemoving', 'BackgroundTrackDropping', 'Identity'],
-        'use_energy/data': [True, False],
-        'use_momentum/data': [True, False]
-    })
-
-    writer.close()
-
     if auto:
         return best_val_ri
 
     logging.shutdown()
-
 
 
 

@@ -1,8 +1,8 @@
 output_dir: train_results/pns/
 tensorboard_output_dir: runs/pns/
 
-epochs: 100
-checkpoint_file_pnl: 'train_results/cached_models/pns/model_checkpoint_131.pth.tar'
+epochs: 50
+checkpoint_file_pnl: '/largehome/giorgian/projects/sunrise-trigger/train_results/cached_models/pns/model_checkpoint_131.pth.tar'
 threshold: 1.0
 
 optimizer:
@@ -31,7 +31,7 @@ adj_model:
 
 model:
   is_hierarchical: True
-  num_features: 79 # particlenet + raw track features
+  num_features: 92 # particlenet + raw track features
   nhid: 256
   num_classes: 2
   pooling_ratio: 0.75
@@ -50,17 +50,18 @@ contrast:
         temperature: 0.8
 
 data:
-        name: trkvec
-        input_dir: /largehome/giorgian/data/parsed_noempty_trkvec/Background/
-        input_dir2: /largehome/giorgian/data/parsed_noempty_trkvec/Signal/
+        name: trkvec-ecml
+        train_input_dir: /home/giorgian/data/presplit/train_gt
+        valid_input_dir: /home/giorgian/data/presplit/valid_gt
+        test_input_dir: /home/giorgian/data/presplit/test_gt
+        n_train: 1000000
+        n_valid: 400000
+        n_test: 400000
+        add_geo_features: True
         use_radius: True
+
         use_momentum: False
         use_energy: False
-        n_train: 541 #693
-        n_valid: 135 #433
         batch_size: 32
         n_workers: 4
-        n_folders: 2
-        n_workers: 4
-        n_folders: 2
         load_complete_graph: False
