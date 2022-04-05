@@ -105,7 +105,6 @@ class TrkDataset():
     def __init__(self, input_dir=None, filelist=None, n_samples=None,
                 n_input_dir=1, input_dir2=None, input_dir3=None, random_permutation=True, n_samples2=None,
                 n_samples3=None, load_complete_graph=False, add_geo_features=False, corruption_level=0.0, use_radius=False):
-        assert use_radius
         if filelist is not None:
             self.metadata = pd.read_csv(os.path.expandvars(filelist))
             filenames = self.metadata.file.values

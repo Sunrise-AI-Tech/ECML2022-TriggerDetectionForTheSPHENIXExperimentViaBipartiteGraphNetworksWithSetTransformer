@@ -13,7 +13,7 @@ optimizer:
 model_mod: 4
 model:
   num_features: 28 # raw track features
-  layers_spec: [[64, 8], [128, 16], [64, 8]]
+  layers_spec: [[256, 16], [256, 16]] # [[64, 8], [128, 16], [64, 8]]
   num_classes: 2
   aggregator_activation: softmax
 
