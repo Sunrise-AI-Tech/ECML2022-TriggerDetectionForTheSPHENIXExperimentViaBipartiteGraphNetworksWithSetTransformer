@@ -456,7 +456,8 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
     model_pnl = load_checkpoint(checkpoint_file_pnl, model_pnl)
     model_pnl.eval()
 
-    checkpoint_file_sagpool = '/largehome/giorgian/projects/physics-trigger-graph-level-prediction/train_results/pns-noradius/experiment_2022-04-04_21:35:34/checkpoints/model_checkpoint_011.pth.tar'
+    #checkpoint_file_sagpool = '/largehome/giorgian/projects/physics-trigger-graph-level-prediction/train_results/pns-noradius/experiment_2022-04-04_21:35:34/checkpoints/model_checkpoint_011.pth.tar'
+    checkpoint_file_sagpool = '/largehome/giorgian/projects/physics-trigger-graph-level-prediction/train_results/pns/experiment_2022-04-04_21:22:52/checkpoints/model_checkpoint_021.pth.tar'
     model = model.to(DEVICE)
     model = load_checkpoint(checkpoint_file_sagpool, model)
 
