@@ -30,6 +30,9 @@ def get_data_loaders(name, batch_size, distributed=False,
     elif name == 'trkvec_predicted':
         from . import predicted_trkvec
         return predicted_trkvec.get_data_loaders(name, batch_size, **data_args)
+    elif name == 'trkvec_mix':
+        from . import mix_trkvec
+        return mix_trkvec.get_data_loaders(name, batch_size, **data_args)
     else:
         raise Exception('Dataset %s unknown' % name)
 

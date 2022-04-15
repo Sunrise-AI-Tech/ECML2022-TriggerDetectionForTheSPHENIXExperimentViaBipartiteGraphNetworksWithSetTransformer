@@ -1,0 +1,37 @@
+output_dir: train_results/biatt/
+tensorboard_output_dir: runs/biatt/
+
+name_on_wandb: biatt-mix
+
+epochs: 50
+optimizer:
+  type: Adam
+  momentum: 0.9
+  learning_rate: 0.0001
+  weight_decay: 0.0001
+
+model_mod: 4
+model:
+  num_features: 28 # raw track features
+  layers_spec: [[64, 16], [64, 16]] # [[64, 8], [128, 16], [64, 8]]
+  num_classes: 2
+  aggregator_activation: softmax
+  ln: False
+
+data:
+        name: trkvec_mix
+        input_dir: /home1/tingtingxuan/Data/parsed_trackvec/Signal
+        input_dir2: /home1/tingtingxuan/Data/parsed_trackvec/Background
+        input_dir3: /home1/tingtingxuan/Data/parsed_trackvec/Background
+        input_dir4: /home1/tingtingxuan/Data/parsed_trackvec/Background
+        use_radius: True
+        use_momentum: False
+        use_energy: False
+        n_train: 500 #693
+        n_train2: 500
+        n_valid: 100 #433
+        batch_size: 32
+        n_workers: 8
+        n_folders: 2
+        n_folders: 2
+        load_complete_graph: False
