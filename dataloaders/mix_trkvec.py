@@ -112,14 +112,14 @@ def load_graph_gt(filename, load_compelete_graph=False):
             momentums = f['momentums'][complete_flags]
             pids = f['pids'][complete_flags]
             ptypes = f ['ptypes'][complete_flags]
-            energy = f['energy'][complete_flags]
+            energy = 0
         else:
             track_vector = f['track_vector']
             origin_vertices = f['origin_vertices']
             momentums = f['momentums']
             pids = f['pids']
             ptypes = f ['ptypes']
-            energy = f['energy']
+            energy = 0
         trigger = f['trigger']
         ip = f['ip']
         n_track = track_vector.shape[0]
@@ -259,7 +259,7 @@ class TrkDataset():
                 self.is_trigger_track.append(is_trigger_track)
             # self.ip.append(ip)
             else:
-                track_vector, complete_flags, origin_vertices, momentums, pids, ptypes, energy, trigger, ip, adj = load_graph(self.filenames[file_index], load_complete_graph)
+                track_vector, complete_flags, origin_vertices, momentums, pids, ptypes, energy, trigger, ip, adj = load_graph_gt(self.filenames[file_index], load_complete_graph)
                 if track_vector.shape[0] != 0:
                     # 4 edge length + 1 total length, 1 angle + 4 delta angle, hits center , total 13
                     geo_features = np.zeros((track_vector.shape[0], 13))
@@ -310,7 +310,12 @@ class TrkDataset():
         self.n_tracks = np.array(self.n_tracks)
 
     def __getitem__(self, index):
-        return self.track_vector[index], self.origin_vertices[index], self.adjs[index], self.n_tracks[index], self.trigger[index], self.energy[index], self.momentums[index], self.is_trigger_track[index], self.r[index] #, self.n_hits[index]
+        # print('origin_vertices', self.origin_vertices[index].shape)
+        # print('trigger', self.trigger[index].shape)
+        # print('energy', self.energy[index].shape)
+        # print('momentums', self.momentums[index].shape)
+        # print('r', self.r[index].shape)
+        return self.track_vector[index], self.origin_vertices[index], self.trigger[index], self.momentums[index], self.r[index] #, self.n_hits[index]
 
     def __len__(self):
         return len(self.n_tracks)
