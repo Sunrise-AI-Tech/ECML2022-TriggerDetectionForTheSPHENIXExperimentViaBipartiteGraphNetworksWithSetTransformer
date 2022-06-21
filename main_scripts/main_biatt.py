@@ -12,9 +12,7 @@ from pprint import pprint
 from datetime import datetime
 from functools import partial
 from sklearn.metrics import roc_auc_score
-import matplotlib.pyplot as plt
 from icecream import ic
-from collections import defaultdict
 from collections import defaultdict
 
 import numpy as np
@@ -43,11 +41,7 @@ from torch.utils.tensorboard import SummaryWriter
 # import GCL.augmentors as A
 
 
-class ArgDict:
-    pass
-
 DEVICE = 'cuda'
-OLD_COLUMNS = None
 
 def parse_args():
     """
@@ -98,18 +92,18 @@ def calc_metrics(trig, pred, accum_info):
     return accum_info
 
 
-def train(data, model, optimizer, epoch, output_dir,  use_energy=False, use_momentum=False, use_radius=False):
-    train_info = do_epoch(data, model, epoch, optimizer, use_energy=use_energy, use_momentum=use_momentum, use_radius=use_radius)
+def train(data, model, optimizer, epoch, output_dir, use_radius=False):
+    train_info = do_epoch(data, model, epoch, optimizer, use_radius=use_radius)
     write_checkpoint(checkpoint_id=epoch, model=model, optimizer=optimizer, output_dir=output_dir)
     return train_info
 
-def evaluate(data, model, epoch, use_momentum=False, use_energy=False, use_radius=False):
+def evaluate(data, model, epoch, use_radius=False):
     with torch.no_grad():
-        val_info = do_epoch(data, model, epoch, optimizer=None, use_energy=use_energy, use_momentum=use_momentum, use_radius=use_radius)
+        val_info = do_epoch(data, model, epoch, optimizer=None, use_radius=use_radius)
     return val_info
 
 
-def do_epoch(data, model, epoch, optimizer=None, use_energy=False, use_momentum=False, use_radius=False):
+def do_epoch(data, model, epoch, optimizer=None, use_radius=False):
     if optimizer is None:
         # validation epoch
         model.eval()
@@ -158,15 +152,6 @@ def do_epoch(data, model, epoch, optimizer=None, use_energy=False, use_momentum=
             radii = radii.to(tracks.dtype)
             tracks = torch.cat((tracks, radii), dim=-1)
 
-
-        if use_energy:
-            energy = energy.to(DEVICE)
-            energy = energy.to(tracks.dtype)
-            tracks = torch.cat((tracks, energy), dim=-1)
-        if use_momentum:
-            momentum = momentum.to(DEVICE)
-            momentum = momentum.to(tracks.dtype)
-            tracks = torch.cat((tracks, momentum), dim=-1)
 
         loss = 0
         pred_labels = model(tracks)
@@ -217,7 +202,7 @@ def do_epoch(data, model, epoch, optimizer=None, use_energy=False, use_momentum=
 
     return accum_info
 
-def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
+def main():
     start_time = datetime.now()
     seed = 42
     np.random.seed(seed)
@@ -232,9 +217,6 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
     # Load configuration
     config = load_config(args.config)
 
-    if auto:
-        config['tensorboard_output_dir'] = parser_dict['tensorboard_output_dir']
-    
     config['output_dir'] = os.path.join(config['output_dir'], f'experiment_{start_time:%Y-%m-%d_%H:%M:%S}')
     os.makedirs(config['output_dir'], exist_ok=True)
     config['tensorboard_output_dir'] = os.path.join(config['tensorboard_output_dir'], f'experiment_{start_time:%Y-%m-%d_%H:%M:%S}')
@@ -242,13 +224,6 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
     # Setup logging
     file_handler = config_logging(verbose=args.verbose, output_dir=config['output_dir'],
                    append=args.resume, rank=0)
-    if auto:
-        columns = get_terminal_columns()
-        logging.info('\n'.join(('',
-            "-" * columns,
-            f"trail number = {trails_number}",
-            "-" * columns
-        )))
     logging.info('Command line config: %s' % args)
     logging.info('Configuration: %s', config)
     logging.info('Saving job outputs to %s', config['output_dir'])
@@ -269,31 +244,19 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
             config=config,
         )
 
-    if auto:
-        train_data, val_data = datasets
-    else:
-        # Load data
-        logging.info('Loading training data and validation data')
-        dconfig = copy.copy(config['data'])
+    # Load data
+    logging.info('Loading training data and validation data')
+    dconfig = copy.copy(config['data'])
 
-        del dconfig['use_momentum']
-        del dconfig['use_energy']
-
-        train_data, val_data, test_data = get_data_loaders(**dconfig)
-        logging.info('Loaded %g training samples', len(train_data.dataset))
-        logging.info('Loaded %g validation samples', len(val_data.dataset))
-        logging.info('Loaded %g test samples', len(test_data.dataset))
+    train_data, val_data, test_data = get_data_loaders(**dconfig)
+    logging.info('Loaded %g training samples', len(train_data.dataset))
+    logging.info('Loaded %g validation samples', len(val_data.dataset))
+    logging.info('Loaded %g test samples', len(test_data.dataset))
 
     mconfig = copy.copy(config['model'])
-    mconfig['num_features'] += 3*config['data']['use_energy'] + 3*config['data']['use_momentum'] + config['data']['use_radius']
-    if config['model_mod'] == 1:
-        from models.Bipartite_Attention1 import Bipartite_Attention1 as Model
-    elif config['model_mod'] == 2:
-        from models.Bipartite_Attention2 import Bipartite_Attention2 as Model
-    elif config['model_mod'] == 3:
-        from models.Bipartite_Attention3 import Bipartite_Attention3 as Model
-    elif config['model_mod'] == 4:
-        from models.Bipartite_Attention4 import Bipartite_Attention4 as Model
+    mconfig['num_features'] += config['data']['use_radius']
+
+    from models.Bipartite_Attention import Bipartite_Attention as Model
     model = Model(
         **mconfig
     )
@@ -485,5 +448,3 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
 
 if __name__ == '__main__':
     main()
-
-
