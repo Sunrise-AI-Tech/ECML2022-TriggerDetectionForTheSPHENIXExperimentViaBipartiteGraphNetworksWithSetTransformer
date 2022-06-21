@@ -34,20 +34,10 @@ os.chdir(project_dir)
 
 # Project dependencies
 from models.SetTransformer import SetTransformer
-# from models.ParticleNetLaplaceDiffpool import ParticleNetLaplaceDiffpool
-from models.ParticleNetLaplace import ParticleNetLaplace
 from dataloaders import get_data_loaders
 from utils.log import write_checkpoint, load_config, load_checkpoint, config_logging, save_config, print_model_summary, get_terminal_columns, center_text, make_table
-from torch.utils.tensorboard import SummaryWriter
-from augmentators import TrackHitDropping, BackgroundTrackDropping
-from GCL.models import DualBranchContrast
-import GCL.losses as L
-
-class ArgDict:
-    pass
 
 DEVICE = 'cuda'
-OLD_COLUMNS = None
 
 def parse_args():
     """
@@ -99,47 +89,19 @@ def calc_metrics(trig, pred, accum_info):
 
     return accum_info
 
-def extract_hyperparameters(config):
-    hp = {}
-    hp['type/optimizer'] = config['optimizer']['type']
-    hp['momentum/optimizer'] = config['optimizer']['momentum']
-    hp['weight_decay/optimizer'] = config['optimizer']['weight_decay']
-    hp['learning_rate/optimizer'] = config['optimizer']['learning_rate']
 
-    hp['name/data'] = config['data']['name']
-    hp['n_train/data'] = config['data']['n_train']
-    hp['n_valid/data'] = config['data']['n_valid']
-    hp['batch_size/data'] = config['data']['batch_size']
-    hp['load_complete_graph/data'] = config['data']['load_complete_graph']
-    hp['use_momentum/data'] = config['data']['use_momentum']
-    hp['use_energy/data'] = config['data']['use_energy']
-    hp['use_radius/data'] = config['data']['use_radius']
-
-    hp['dim_input/model'] = config['model']['dim_input']
-    hp['num_outputs/model'] = config['model']['num_outputs']
-    hp['dim_output/model'] = config['model']['dim_output']
-    hp['num_inds/model'] = config['model']['num_inds']
-    hp['dim_hidden/model'] = config['model']['dim_hidden']
-    hp['num_heads/model'] = config['model']['num_heads']
-    hp['ln/model'] = config['model']['ln']
-
-    return hp
-
-
-
-def train(data, model_pnl, model, optimizer, epoch, output_dir, use_wandb=False, ce_weight=1, use_extra_pos=True, use_energy=False, use_momentum=False, use_radius=False, momentum_disturb=0, radius_disturb=0):
-    train_info = do_epoch(data, model_pnl, model, epoch, optimizer, ce_weight=ce_weight, use_extra_pos=use_extra_pos, use_energy=use_energy, use_momentum=use_momentum, use_radius=use_radius, momentum_disturb=momentum_disturb, radius_disturb=radius_disturb)
+def train(data, model, optimizer, epoch, output_dir, use_wandb=False, use_radius=False):
+    train_info = do_epoch(data, model, epoch, optimizer, use_radius=use_radius)
     write_checkpoint(checkpoint_id=epoch, model=model, optimizer=optimizer, output_dir=output_dir)
     return train_info
 
-def evaluate(data, model_pnl, model, epoch, loss_config=None, use_momentum=False, use_energy=False, use_radius=False, momentum_disturb=0, radius_disturb=0):
+def evaluate(data, model, epoch, use_radius=False):
     with torch.no_grad():
-        val_info = do_epoch(data, model_pnl, model, epoch, optimizer=None, use_energy=use_energy, use_momentum=use_momentum, use_radius=use_radius, momentum_disturb=momentum_disturb, radius_disturb=radius_disturb)
+        val_info = do_epoch(data, model, epoch, optimizer=None, use_radius=use_radius)
     return val_info
 
 
-def do_epoch(data, model_pnl, model, epoch, optimizer=None, ce_weight=1, use_extra_pos=True, use_energy=False, use_momentum=False, use_radius=False, momentum_disturb=0, radius_disturb=0):
-    # global writer
+def do_epoch(data, model, epoch, optimizer=None, use_radius=False):
     if optimizer is None:
         # validation epoch
         model.eval()
@@ -180,31 +142,14 @@ def do_epoch(data, model_pnl, model, epoch, optimizer=None, ce_weight=1, use_ext
         batch_size = tracks.shape[0]
         num_insts += batch_size
         
-        if use_energy:
-            energy = energy.to(DEVICE)
-            energy = energy.to(tracks.dtype)
-            tracks = torch.cat((tracks, energy), dim=-1)
-        if use_momentum:
-            momentum = torch.sqrt(momentum[:, :, 0]**2 + momentum[:, :, 1]**2)
-            momentum = momentum * (1 + np.random.normal(0, momentum_disturb, momentum.shape))
-            relu = nn.ReLU()
-            momentum = relu(momentum) # must be positive
-            momentum = momentum.to(DEVICE)
-            momentum = momentum.to(tracks.dtype)
-            momentum = momentum.unsqueeze(-1)
-            tracks = torch.cat((tracks, momentum), dim=-1)
-
         if use_radius:
-            radii = radii * (1 + np.random.normal(0, radius_disturb, radii.shape))
-            relu = nn.ReLU()
-            radii = relu(radii) # must be positive
             radii = radii.to(DEVICE)
             radii = radii.to(tracks.dtype)
             tracks = torch.cat((tracks, radii), dim=-1)
 
         pred_labels = model(tracks).view(-1, 2)
     
-        ce_loss = ce_weight*F.nll_loss(pred_labels, trig)
+        ce_loss = F.nll_loss(pred_labels, trig)
         loss = ce_loss
         accum_info['loss_ce'] += ce_loss.item() * batch_size
 
@@ -241,9 +186,6 @@ def do_epoch(data, model_pnl, model, epoch, optimizer=None, ce_weight=1, use_ext
     except ValueError:
         accum_info['auroc'] = 0
 
-    # for m, v in accum_info.items():
-    #     writer.add_scalar(f'{m}/{phase}', v, epoch)
-           
     accum_info['run_time'] = datetime.now() - start_time
     accum_info['run_time'] = str(accum_info['run_time']).split(".")[0]
 
@@ -251,8 +193,7 @@ def do_epoch(data, model_pnl, model, epoch, optimizer=None, ce_weight=1, use_ext
 
     return accum_info
 
-def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
-    # global writer
+def main():
     start_time = datetime.now()
     seed = 42
     np.random.seed(seed)
@@ -266,25 +207,13 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
 
     # Load configuration
     config = load_config(args.config)
-    hp = extract_hyperparameters(config)
 
-    if auto:
-        config['tensorboard_output_dir'] = parser_dict['tensorboard_output_dir']
-    
     config['output_dir'] = os.path.join(config['output_dir'], f'experiment_{start_time:%Y-%m-%d_%H:%M:%S}')
     os.makedirs(config['output_dir'], exist_ok=True)
-    config['tensorboard_output_dir'] = os.path.join(config['tensorboard_output_dir'], f'experiment_{start_time:%Y-%m-%d_%H:%M:%S}')
 
     # Setup logging
     file_handler = config_logging(verbose=args.verbose, output_dir=config['output_dir'],
                    append=args.resume, rank=0)
-    if auto:
-        columns = get_terminal_columns()
-        logging.info('\n'.join(('',
-            "-" * columns,
-            f"trail number = {trails_number}",
-            "-" * columns
-        )))
     logging.info('Command line config: %s' % args)
     logging.info('Configuration: %s', config)
     logging.info('Saving job outputs to %s', config['output_dir'])
@@ -293,7 +222,7 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
     save_config(config)
     # os.environ['CUDA_LAUNCH_BLOCKING'] = "1"  # uncomment only for CUDA error debugging
     # os.environ["CUDA_VISIBLE_DEVICES"] = config.gpu
-    name = config['name_on_wandb'] + f"-nhead{config['model']['num_heads']}-hid_d{config['model']['dim_hidden']}-use_radius{config['data']['use_radius']}-use_momentum{config['data']['use_momentum']}-momentum_disturb{config['data']['momentum_disturb']}-radius_disturb{config['data']['radius_disturb']}-ln{config['model']['ln']}-ntrain{config['data']['n_train']}*2-lr{config['optimizer']['learning_rate']}-{config['optimizer']['type']}-b{config['data']['batch_size']}"
+    name = config['name_on_wandb'] + f"-nhead{config['model']['num_heads']}-hid_d{config['model']['dim_hidden']}-use_radius{config['data']['use_radius']}-ln{config['model']['ln']}-ntrain{config['data']['n_train']}*2-lr{config['optimizer']['learning_rate']}-{config['optimizer']['type']}-b{config['data']['batch_size']}"
     if args.use_wandb:
         wandb.init(
             project=f'{args.wandb}', 
@@ -304,43 +233,21 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
 
     torch.cuda.set_device(int(args.gpu))
 
-    if auto:
-        train_data, val_data = datasets
-    else:
-        # Load data
-        logging.info('Loading training data and validation data')
-        dconfig = copy.copy(config['data'])
+    # Load data
+    logging.info('Loading training data and validation data')
+    dconfig = copy.copy(config['data'])
 
-        del dconfig['use_momentum']
-        del dconfig['use_energy']
-        del dconfig['momentum_disturb']
-        del dconfig['radius_disturb']
+    train_data, val_data, test_data = get_data_loaders(**dconfig)
+    logging.info('Loaded %g training samples', len(train_data.dataset))
+    logging.info('Loaded %g validation samples', len(val_data.dataset))
+    logging.info('Loaded %g test samples', len(test_data.dataset))
 
-        train_data, val_data, test_data = get_data_loaders(**dconfig)
-        logging.info('Loaded %g training samples', len(train_data.dataset))
-        logging.info('Loaded %g validation samples', len(val_data.dataset))
-        logging.info('Loaded %g test samples', len(test_data.dataset))
-
-    # Create model instance
-    model_pnl = None
- 
-    aug1, aug2 = None, None
-
-    # mconfig = copy.copy(config['model'])
-    # mconfig['num_features'] += 3*config['data']['use_energy'] + config['data']['use_momentum'] + config['data']['use_radius'] - 64
-    config['model']['dim_input'] += config['data']['use_radius'] + config['data']['use_momentum']
+    config['model']['dim_input'] += config['data']['use_radius']
     model = SetTransformer(
         **config['model']
     )
-    # model_pnl = model_pnl.to(DEVICE)
     model = model.to(DEVICE)
 
-    # checkpoint_file_pnl = config['checkpoint_file_pnl']
-    # model_pnl = load_checkpoint(checkpoint_file_pnl, model_pnl)
-    # model_pnl.eval()
-
-
-    # writer = SummaryWriter(log_dir=config['tensorboard_output_dir'])
     # Optimizer
     if config['optimizer']['type'] == 'Adam':
         optimizer = torch.optim.Adam(params=model.parameters(), lr=config['optimizer']['learning_rate'], weight_decay=config['optimizer']['weight_decay'])
@@ -349,20 +256,7 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
     else:
         raise NotImplementedError(f'Optimizer {config["optimizer"]["type"]} not implemented.')
 
-
     def lr_schedule(epoch):
-        if epoch > 10 and epoch <= 20:
-            return 0.1
-        elif epoch > 20 and epoch <= 40:
-            return 0.01
-        elif epoch > 40 and epoch <= 80:
-            return 0.001
-        elif epoch > 80:
-            return 0.0001
-        else:
-            return 1
-
-    def lr_schedule_new(epoch):
         if epoch > 15 and epoch <= 30:
             return 0.1
         elif epoch > 30 and epoch <= 40:
@@ -378,7 +272,7 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
         else:
             return 1
 
-    lr_scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_schedule_new)
+    lr_scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_schedule)
 
     print_model_summary(model)
     model = model.to(DEVICE)
@@ -398,12 +292,9 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
 
     
     for epoch in range(1, config['epochs'] + 1):
-        ce_weight = 1
-        train_info = train(train_data, model_pnl, model, optimizer, epoch, config['output_dir'], ce_weight=ce_weight,
-                use_energy=config['data']['use_energy'], use_momentum=config['data']['use_momentum'],
-                use_radius=config['data']['use_radius'], momentum_disturb=config['data']['momentum_disturb'],
-                radius_disturb=config['data']['radius_disturb']
-                )
+        train_info = train(train_data, model, optimizer, epoch, config['output_dir'], 
+                use_radius=config['data']['use_radius']
+            )
         table = make_table(
             ('Total loss', f"{train_info['loss']:.6f}"),
             ('Rand Index', f"{train_info['ri']:.6f}"),
@@ -434,11 +325,7 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
             wandb.log({phase.capitalize() + " Roc_auc": train_info['auroc']})
             wandb.log({phase.capitalize() + " Run Time": train_info['run_time']})
 
-        val_info = evaluate(val_data, model_pnl, model, epoch,
-                use_energy=config['data']['use_energy'], use_momentum=config['data']['use_momentum'],
-                use_radius=config['data']['use_radius'], momentum_disturb=config['data']['momentum_disturb'],
-                radius_disturb=config['data']['radius_disturb']
-                )
+        val_info = evaluate(val_data, model, epoch, use_radius=config['data']['use_radius'])
         table = make_table(
             ('Total loss', f"{val_info['loss']:.6f}"),
             ('Rand Index', f"{val_info['ri']:.6f}"),
@@ -483,11 +370,7 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
     logging.info(f'Best validation acc: {best_val_ri:.4f}, best epoch: {best_epoch}.')
     logging.info(f'Training runtime: {str(datetime.now() - start_time).split(".")[0]}')
 
-    test_info = evaluate(test_data, model_pnl, best_model, epoch,
-                use_energy=config['data']['use_energy'], use_momentum=config['data']['use_momentum'],
-                use_radius=config['data']['use_radius'], momentum_disturb=config['data']['momentum_disturb'],
-                radius_disturb=config['data']['radius_disturb']
-                )
+    test_info = evaluate(test_data, best_model, epoch, use_radius=config['data']['use_radius'])
                 
     table = make_table(
         ('Total loss', f"{test_info['loss']:.6f}"),
@@ -536,22 +419,6 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
         best_dict = {'best_val_ri': best_val_ri, 'best_epoch': best_epoch}
         best_df = pd.DataFrame(best_dict, index=[0])
         best_df.to_csv(os.path.join(output_dir, "best_val_results.csv"), index=False)
-
-    # writer.add_hparams(hp, {
-    #     'auroc/validation': best_val_auroc,
-    #     'ri/validation': best_val_ri,
-    # },
-    # hparam_domain_discrete = {
-    #     'type/optimizer': ['Adam', 'SGD'],
-    #     'load_complete_graph/data': [True, False],
-    #     'use_energy/data': [True, False],
-    #     'use_momentum/data': [True, False]
-    # })
-
-    # writer.close()
-
-    if auto:
-        return best_val_ri
 
     logging.shutdown()
 
