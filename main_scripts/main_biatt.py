@@ -428,9 +428,6 @@ def main():
         best_df.to_csv(os.path.join(output_dir, "best_val_results.csv"), index=False)
 
 
-    if auto:
-        return best_val_ri
-
     logging.shutdown()
 
 

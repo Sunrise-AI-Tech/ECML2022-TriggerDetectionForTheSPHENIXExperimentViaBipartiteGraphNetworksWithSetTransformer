@@ -36,24 +36,8 @@ from models.GarNet import GarNet
 from dataloaders import get_data_loaders
 from utils.log import write_checkpoint, load_config, load_checkpoint, config_logging, save_config, print_model_summary, get_terminal_columns, center_text, make_table
 from torch.utils.tensorboard import SummaryWriter
-from augmentators import TrackHitDropping, BackgroundTrackDropping
-from GCL.models import DualBranchContrast
-import GCL.losses as L
-import GCL.augmentors as A
 
-import signal
-
-CLEAN_EXIT_REQUEST = False
-def handler(signum, frame):
-    CLEAN_EXIT_REQUEST = True
-
-signal.signal(signal.SIGUSR1, handler)
-
-class ArgDict:
-    pass
-
-DEVICE = 'cuda:1'
-OLD_COLUMNS = None
+DEVICE = 'cuda'
 
 def parse_args():
     """
@@ -61,7 +45,7 @@ def parse_args():
     :return: argparser instance
     """
     argparser = argparse.ArgumentParser(description=__doc__)
-    argparser.add_argument('--config', default='configs/garnet.yaml')
+    argparser.add_argument('--config', default='configs/gt_track_garnet.yaml')
     argparser.add_argument('-g', '--gpu', default='0', help='The gpu to run on')
     argparser.add_argument('--auto', action='store_true')
     argparser.add_argument('--save', dest='save', action='store_true', help='Whether to save all to disk')
@@ -103,43 +87,19 @@ def calc_metrics(trig, pred, accum_info):
 
     return accum_info
 
-def extract_hyperparameters(config):
-    hp = {}
-    hp['type/optimizer'] = config['optimizer']['type']
-    hp['momentum/optimizer'] = config['optimizer']['momentum']
-    hp['weight_decay/optimizer'] = config['optimizer']['weight_decay']
-    hp['learning_rate/optimizer'] = config['optimizer']['learning_rate']
-    hp['name/data'] = config['data']['name']
-    hp['n_train/data'] = config['data']['n_train']
-    hp['n_valid/data'] = config['data']['n_valid']
-    hp['batch_size/data'] = config['data']['batch_size']
-    hp['load_complete_graph/data'] = config['data']['load_complete_graph']
-    hp['use_momentum/data'] = config['data']['use_momentum']
-    hp['use_energy/data'] = config['data']['use_energy']
-    hp['use_radius/data'] = config['data']['use_radius']
 
-
-    hp['num_features/model'] = config['model']['num_features']
-    hp['potential/model'] = config['model']['potential']
-    hp['layers_spec/model'] = repr(config['model']['layers_spec'])
-    hp['num_classes/model'] = config['model']['num_classes']
-
-    return hp
-
-
-
-def train(data, model, optimizer, epoch, output_dir, use_energy=False, use_momentum=False, use_radius=False):
-    train_info = do_epoch(data, model, epoch, optimizer, use_energy=use_energy, use_momentum=use_momentum, use_radius=use_radius)
+def train(data, model, optimizer, epoch, output_dir, use_radius=False):
+    train_info = do_epoch(data, model, epoch, optimizer, use_radius=use_radius)
     write_checkpoint(checkpoint_id=epoch, model=model, optimizer=optimizer, output_dir=output_dir)
     return train_info
 
-def evaluate(data, model, epoch, use_momentum=False, use_energy=False, use_radius=False):
+def evaluate(data, model, epoch, use_radius=False):
     with torch.no_grad():
-        val_info = do_epoch(data, model, epoch, optimizer=None, use_energy=use_energy, use_momentum=use_momentum, use_radius=use_radius)
+        val_info = do_epoch(data, model, epoch, optimizer=None, use_radius=use_radius)
     return val_info
 
 
-def do_epoch(data, model, epoch, optimizer=None, use_energy=False, use_momentum=False, use_radius=False):
+def do_epoch(data, model, epoch, optimizer=None, use_radius=False):
     global writer, CLEAN_EXIT_REQUEST
     if optimizer is None:
         # validation epoch
@@ -177,9 +137,6 @@ def do_epoch(data, model, epoch, optimizer=None, use_energy=False, use_momentum=
     total_selected = 0
     
     for batch in data:
-        if CLEAN_EXIT_REQUEST:
-            break
-
         tracks, vtx, partitions_as_graph, n_tracks, trig, energy, momentum, is_trigger_track, radii = batch
         tracks = tracks.to(DEVICE, torch.float)
         trig = (trig.to(DEVICE) == 1).long()
@@ -192,17 +149,8 @@ def do_epoch(data, model, epoch, optimizer=None, use_energy=False, use_momentum=
             tracks = torch.cat((tracks, radii), dim=-1)
 
 
-        if use_energy:
-            energy = energy.to(DEVICE)
-            energy = energy.to(tracks.dtype)
-            tracks = torch.cat((tracks, energy), dim=-1)
-        if use_momentum:
-            momentum = momentum.to(DEVICE)
-            momentum = momentum.to(tracks.dtype)
-            tracks = torch.cat((tracks, momentum), dim=-1)
-
-        loss = 0
         pred_labels = model(tracks)
+        loss = 0
         ce_loss = F.cross_entropy(pred_labels, trig)
         loss += ce_loss
         accum_info['loss_ce'] += ce_loss.item() * batch_size
@@ -242,9 +190,6 @@ def do_epoch(data, model, epoch, optimizer=None, use_energy=False, use_momentum=
     except ValueError:
         accum_info['auroc'] = 0
 
-    for m, v in accum_info.items():
-        writer.add_scalar(f'{m}/{phase}', v, epoch)
-           
     accum_info['run_time'] = datetime.now() - start_time
     accum_info['run_time'] = str(accum_info['run_time']).split(".")[0]
 
@@ -253,8 +198,7 @@ def do_epoch(data, model, epoch, optimizer=None, use_energy=False, use_momentum=
 
     return accum_info
 
-def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
-    global writer
+def main():
     start_time = datetime.now()
     seed = 42
     np.random.seed(seed)
@@ -268,11 +212,7 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
 
     # Load configuration
     config = load_config(args.config)
-    hp = extract_hyperparameters(config)
 
-    if auto:
-        config['tensorboard_output_dir'] = parser_dict['tensorboard_output_dir']
-    
     config['output_dir'] = os.path.join(config['output_dir'], f'experiment_{start_time:%Y-%m-%d_%H:%M:%S}')
     os.makedirs(config['output_dir'], exist_ok=True)
     config['tensorboard_output_dir'] = os.path.join(config['tensorboard_output_dir'], f'experiment_{start_time:%Y-%m-%d_%H:%M:%S}')
@@ -280,13 +220,6 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
     # Setup logging
     file_handler = config_logging(verbose=args.verbose, output_dir=config['output_dir'],
                    append=args.resume, rank=0)
-    if auto:
-        columns = get_terminal_columns()
-        logging.info('\n'.join(('',
-            "-" * columns,
-            f"trail number = {trails_number}",
-            "-" * columns
-        )))
     logging.info('Command line config: %s' % args)
     logging.info('Configuration: %s', config)
     logging.info('Saving job outputs to %s', config['output_dir'])
@@ -297,30 +230,23 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
     # os.environ["CUDA_VISIBLE_DEVICES"] = config.gpu
     torch.cuda.set_device(int(args.gpu))
 
-    if auto:
-        train_data, val_data, test_data = datasets
-    else:
-        # Load data
-        logging.info('Loading training data and validation data')
-        dconfig = copy.copy(config['data'])
+    # Load data
+    logging.info('Loading training data and validation data')
+    dconfig = copy.copy(config['data'])
 
-        del dconfig['use_momentum']
-        del dconfig['use_energy']
-
-        train_data, val_data, test_data = get_data_loaders(**dconfig)
-        logging.info('Loaded %g training samples', len(train_data.dataset))
-        logging.info('Loaded %g validation samples', len(val_data.dataset))
-        logging.info('Loaded %g test samples', len(test_data.dataset))
+    train_data, val_data, test_data = get_data_loaders(**dconfig)
+    logging.info('Loaded %g training samples', len(train_data.dataset))
+    logging.info('Loaded %g validation samples', len(val_data.dataset))
+    logging.info('Loaded %g test samples', len(test_data.dataset))
 
     mconfig = copy.copy(config['model'])
-    mconfig['num_features'] += 3*config['data']['use_energy'] + 3*config['data']['use_momentum'] + config['data']['use_radius']
+    mconfig['num_features'] += config['data']['use_radius']
     model = GarNet(
         **mconfig
     )
     model = model.to(DEVICE)
 
 
-    writer = SummaryWriter(log_dir=config['tensorboard_output_dir'])
     # Optimizer
     if config['optimizer']['type'] == 'Adam':
         optimizer = torch.optim.Adam(params=model.parameters(), lr=config['optimizer']['learning_rate'], weight_decay=config['optimizer']['weight_decay'])
@@ -359,13 +285,8 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
     best_val_ri = -1
     best_val_auroc = -1
     best_model = None
-    signal.signal(signal.SIGINT, signal.SIG_IGN)
     for epoch in range(1, config['epochs'] + 1):
-        if CLEAN_EXIT_REQUEST:
-            break
-
         train_info = train(train_data, model, optimizer, epoch, config['output_dir'],
-                use_energy=config['data']['use_energy'], use_momentum=config['data']['use_momentum'],
                 use_radius=config['data']['use_radius']
                 )
         table = make_table(
@@ -390,7 +311,6 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
         train_loss[epoch-1], train_ri[epoch-1] = train_info['loss'], train_info['ri']
 
         val_info = evaluate(val_data, model, epoch,
-                use_energy=config['data']['use_energy'], use_momentum=config['data']['use_momentum'],
                 use_radius=config['data']['use_radius']
                 )
         table = make_table(
@@ -480,22 +400,6 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
         best_dict = {'best_val_ri': best_val_ri, 'best_epoch': best_epoch}
         best_df = pd.DataFrame(best_dict, index=[0])
         best_df.to_csv(os.path.join(output_dir, "best_val_results.csv"), index=False)
-
-    writer.add_hparams(hp, {
-        'auroc/validation': best_val_auroc,
-        'ri/validation': best_val_ri,
-    },
-    hparam_domain_discrete = {
-        'type/optimizer': ['Adam', 'SGD'],
-        'load_complete_graph/data': [True, False],
-        'use_energy/data': [True, False],
-        'use_momentum/data': [True, False]
-    })
-
-    writer.close()
-
-    if auto:
-        return best_val_ri
 
     logging.shutdown()
 

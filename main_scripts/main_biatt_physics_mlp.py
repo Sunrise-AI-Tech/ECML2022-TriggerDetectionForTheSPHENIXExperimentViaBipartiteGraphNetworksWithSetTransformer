@@ -35,8 +35,7 @@ from models.MLP import MLP
 from dataloaders import get_data_loaders
 from utils.log import write_checkpoint, load_config, load_checkpoint, config_logging, save_config, print_model_summary, get_terminal_columns, center_text, make_table
 
-DEVICE = 'cuda:1'
-OLD_COLUMNS = None
+DEVICE = 'cuda:0'
 
 def parse_args():
     """
@@ -429,9 +428,6 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
         best_df = pd.DataFrame(best_dict, index=[0])
         best_df.to_csv(os.path.join(output_dir, "best_val_results.csv"), index=False)
 
-
-    if auto:
-        return best_val_ri
 
     logging.shutdown()
 
