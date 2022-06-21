@@ -2,7 +2,7 @@ output_dir: train_results/set/
 tensorboard_output_dir: runs/set/
 
 name_on_wandb: transset-gttrack-ecml
-epochs: 50
+epochs: 10
 
 optimizer:
   type: Adam
@@ -25,17 +25,12 @@ data:
         train_input_dir: /home/giorgian/data/presplit/train_gt
         valid_input_dir: /home/giorgian/data/presplit/valid_gt
         test_input_dir: /home/giorgian/data/presplit/test_gt
-        n_train: 1000000
-        n_valid: 400000
-        n_test: 400000
+        n_train: 10000 #0
+        n_valid: 4000 #00
+        n_test: 4000  #00
         add_geo_features: True
         use_radius: True
 
-        use_momentum: False
-        use_energy: False
         batch_size: 32
         n_workers: 4
         load_complete_graph: False
-        use_energy: False
-        momentum_disturb: 0
-        radius_disturb: 0
