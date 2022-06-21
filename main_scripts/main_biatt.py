@@ -34,7 +34,6 @@ os.chdir(project_dir)
 # from models.ParticleNetLaplaceDiffpool import ParticleNetLaplaceDiffpool
 from dataloaders import get_data_loaders
 from utils.log import write_checkpoint, load_config, load_checkpoint, config_logging, save_config, print_model_summary, get_terminal_columns, center_text, make_table
-from torch.utils.tensorboard import SummaryWriter
 # from augmentators import TrackHitDropping, BackgroundTrackDropping
 # from GCL.models import DualBranchContrast
 # import GCL.losses as L
@@ -219,7 +218,6 @@ def main():
 
     config['output_dir'] = os.path.join(config['output_dir'], f'experiment_{start_time:%Y-%m-%d_%H:%M:%S}')
     os.makedirs(config['output_dir'], exist_ok=True)
-    config['tensorboard_output_dir'] = os.path.join(config['tensorboard_output_dir'], f'experiment_{start_time:%Y-%m-%d_%H:%M:%S}')
 
     # Setup logging
     file_handler = config_logging(verbose=args.verbose, output_dir=config['output_dir'],
@@ -234,7 +232,7 @@ def main():
     # os.environ["CUDA_VISIBLE_DEVICES"] = config.gpu
     torch.cuda.set_device(int(args.gpu))
 
-    name = config['name_on_wandb'] + f"-mod{config['model_mod']}-n_hid{config['model']['layers_spec'][0][0]}-n_agg{config['model']['layers_spec'][0][1]}-n_layers{len(config['model']['layers_spec'])}-agg_activation{config['model']['aggregator_activation']}-ln{config['model']['ln']}-use_radius{config['data']['use_radius']}-use_momentum{config['data']['use_momentum']}-ntrain{config['data']['n_train']}-lr{config['optimizer']['learning_rate']}-{config['optimizer']['type']}-b{config['data']['batch_size']}"
+    name = config['name_on_wandb'] + f"-mod{config['model_mod']}-n_hid{config['model']['layers_spec'][0][0]}-n_agg{config['model']['layers_spec'][0][1]}-n_layers{len(config['model']['layers_spec'])}-agg_activation{config['model']['aggregator_activation']}-ln{config['model']['ln']}-use_radius{config['data']['use_radius']}-ntrain{config['data']['n_train']}-lr{config['optimizer']['learning_rate']}-{config['optimizer']['type']}-b{config['data']['batch_size']}"
     logging.info(name)
     if args.use_wandb:
         wandb.init(
@@ -303,7 +301,6 @@ def main():
     for epoch in range(1, config['epochs'] + 1):
 
         train_info = train(train_data, model, optimizer, epoch, config['output_dir'],
-                use_energy=config['data']['use_energy'], use_momentum=config['data']['use_momentum'],
                 use_radius=config['data']['use_radius']
                 )
         table = make_table(
@@ -337,7 +334,6 @@ def main():
             wandb.log({phase.capitalize() + " Run Time": train_info['run_time']})
 
         val_info = evaluate(val_data, model, epoch,
-                use_energy=config['data']['use_energy'], use_momentum=config['data']['use_momentum'],
                 use_radius=config['data']['use_radius']
                 )
         table = make_table(
@@ -386,7 +382,6 @@ def main():
     logging.info(f'Training runtime: {str(datetime.now() - start_time).split(".")[0]}')
 
     test_info = evaluate(test_data, best_model, epoch,
-            use_energy=config['data']['use_energy'], use_momentum=config['data']['use_momentum'],
             use_radius=config['data']['use_radius']
         )
     table = make_table(

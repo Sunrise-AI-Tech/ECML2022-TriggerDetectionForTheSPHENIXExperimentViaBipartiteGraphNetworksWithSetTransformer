@@ -17,7 +17,7 @@ class Bipartite_Attention(nn.Module):
             aggregator_activation='potential',
             ln=False,
             ):
-        super(Bipartite_Attention4, self).__init__()
+        super(Bipartite_Attention, self).__init__()
         _layers = []
         prev_dim = num_features
         
