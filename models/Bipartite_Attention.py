@@ -1,23 +1,13 @@
-from os import X_OK
-from sklearn import utils
-from torch import tensor
-from torch._C import is_anomaly_enabled
 import torch.nn as nn
 import torch
-from typing import OrderedDict, Tuple
-from icecream import ic
-from torch.nn.modules import distance
-from torch_scatter import scatter_add
 # from utils import isParallelMatrix, shortest_dist_parallel_matrix, shortest_dist_non_parallel_matrix
 
-from random import sample
 import logging
-from icecream import ic
 
 # local
 from .utils_settrans import ISAB, PMA, SAB
 
-class Bipartite_Attention4(nn.Module):
+class Bipartite_Attention(nn.Module):
     def __init__(
             self,
             num_features,
@@ -45,10 +35,6 @@ class Bipartite_Attention4(nn.Module):
             prev_dim = feature_dim 
 
         self._layers = nn.ModuleList(_layers)
-
-        # self._layers = nn.Sequential(
-        #         *garnet_layers
-        # )
 
         self._pred_layers = nn.Sequential(
                 nn.Linear(2*prev_dim, prev_dim),
