@@ -23,7 +23,6 @@ import torch
 import torch.nn.functional as F
 import torch.nn as nn
 import pickle
-#os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 
 # Change working directory to project's main directory, and add it to path - for library and config usages
 project_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
@@ -34,12 +33,7 @@ os.chdir(project_dir)
 from models.ParticleNetLaplace import ParticleNetLaplace
 from dataloaders import get_data_loaders
 from utils.log import write_checkpoint, load_config, load_checkpoint, config_logging, save_config, print_model_summary, get_terminal_columns, center_text, make_table
-from torch.utils.tensorboard import SummaryWriter
 
-class ArgDict:
-    pass
-
-writer = None
 DEVICE = 'cuda'
 def parse_args():
     """
@@ -63,54 +57,6 @@ def parse_args():
     args = argparser.parse_args()
 
     return args
-
-def load_config(config_file, **kwargs):
-    with open(config_file) as f:
-        config = yaml.load(f, Loader=yaml.FullLoader)
-    # Update config from command line, and expand paths
-    config['output_dir'] = os.path.expandvars(config['output_dir'])
-    for key, val in kwargs.items():
-        config[key] = val
-    return config
-
-def config_logging(verbose, output_dir, append=False, rank=0):
-    log_format = '%(asctime)s %(levelname)s %(message)s'
-    log_level = logging.DEBUG if verbose else logging.INFO
-    stream_handler = logging.StreamHandler(stream=sys.stdout)
-    stream_handler.setLevel(log_level)
-    handlers = [stream_handler]
-    if output_dir is not None:
-        log_dir = output_dir
-        os.makedirs(log_dir, exist_ok=True)
-        log_file = os.path.join(log_dir, 'out_%i.log' % rank)
-        mode = 'a' if append else 'w'
-        file_handler = logging.FileHandler(log_file, mode=mode)
-        file_handler.setLevel(log_level)
-        handlers.append(file_handler)
-    logging.basicConfig(level=log_level, format=log_format, handlers=handlers, force=True)
-    # Suppress annoying matplotlib debug printouts
-    logging.getLogger('matplotlib').setLevel(logging.ERROR)
-    return file_handler
-
-def save_config(config):
-    output_dir = config['output_dir']
-    config_file = os.path.join(output_dir, 'config.pkl')
-    logging.info('Writing config via pickle to %s', config_file)
-    with open(config_file, 'wb') as f:
-        pickle.dump(config, f)
-
-def print_model_summary(model):
-    """Override as needed"""
-    logging.info(
-        'Model: \n%s\nParameters: %i' %
-        (model, sum(p.numel() for p in model.parameters())))
-    logging.info(
-        'Model: \n%s\Buffers: %i' %
-        (model, sum([buf.nelement()*buf.element_size() for buf in model.buffers() if buf != 'Pairwise_Predictor'])))
-    mem_params = sum([param.nelement()*param.element_size() for param in model.parameters()])
-    mem_bufs = sum([buf.nelement()*buf.element_size() for buf in model.buffers() if buf != 'Pairwise_Predictor'])
-    logging.info(mem_bufs)
-    mem = mem_params + mem_bufs
 
 def calc_metrics(trig, pred, accum_info):
     with torch.no_grad():
@@ -150,74 +96,18 @@ def calc_metrics_for_linkage(truth, pred, accum_info):
 
     return accum_info
 
-def extract_hyperparameters(config):
-    hp = {}
-    hp['epochs'] = config['epochs']
-    hp['type/optimizer'] = config['optimizer']['type']
-    hp['momentum/optimizer'] = config['optimizer']['momentum']
-    hp['weight_decay/optimizer'] = config['optimizer']['weight_decay']
-    hp['learning_rate/optimizer'] = config['optimizer']['learning_rate']
-    hp['type/model'] = config['model']['type']
-    hp['hidden_dim/model'] = config['model']['hidden_dim']
-    hp['hidden_activation/model'] = config['model']['hidden_activation']
-    hp['layer_norm/model'] = config['model']['layer_norm']
-    hp['affinity_loss/model'] = config['model']['affinity_loss']
-    hp['affinity_loss_CE_weight/model'] = config['model']['affinity_loss_CE_weight']
-    hp['affinity_loss_Lp_weight/model'] = config['model']['affinity_loss_Lp_weight']
-    hp['affinity_loss_11_weight/model'] = config['model']['affinity_loss_11_weight']
-    hp['affinity_loss_frobenius_weight/model'] = config['model']['affinity_loss_frobenius_weight']
-    hp['d_metric/model'] = config['model']['d_metric']
-    hp['k/model'] = config['model']['k']
-    hp['hidden_dim/GNN_config/model'] = config['model']['GNN_config']['hidden_dim']
-    hp['hidden_activation/GNN_config/model'] = config['model']['GNN_config']['hidden_activation']
-    hp['layer_norm/GNN_config/model'] = config['model']['GNN_config']['layer_norm']
-    hp['n_graph_iters/GNN_config/model'] = config['model']['GNN_config']['n_graph_iters']
-    hp['name/data'] = config['data']['name']
-    hp['n_train/data'] = config['data']['n_train']
-    hp['n_valid/data'] = config['data']['n_valid']
-    hp['batch_size/data'] = config['data']['batch_size']
-    hp['load_complete_graph/data'] = config['data']['load_complete_graph']
-    hp['use_momentum/data'] = config['data']['use_momentum']
-    hp['use_energy/data'] = config['data']['use_energy']
-    hp['use_radius/data'] = config['data']['use_radius']
 
-    return hp
-
-
-
-'''
-Input:
-@vtx    [batch_size, n_tracks, 3]           3 stands for 3d coordinates
-
-Output:
-@res    [batch_size, n_tracks, n_tracks]    Connectivity Truth
-'''
-def get_A_from_vtx(vtx):
-    # ic(vtx.shape)
-    res = torch.zeros((vtx.shape[0], vtx.shape[1], vtx.shape[1]))
-    # ic(res.shape)
-    i_batch = 0
-    for node_coords in vtx:
-        for i in range(len(node_coords)):
-            for j in range(len(node_coords)):
-                if torch.equal(node_coords[i], node_coords[j]):
-                    res[i_batch][i][j] = 1
-        i_batch = i_batch + 1
-    # ic(res)
-    return res
-
-def train(data, model, optimizer, epoch,  output_dir, use_energy=False, use_momentum=False, use_radius=False):
-    train_info = do_epoch(data, model, epoch, optimizer=optimizer, use_energy=use_energy, use_momentum=use_momentum, use_radius=use_radius)
+def train(data, model, optimizer, epoch,  output_dir, use_radius=False):
+    train_info = do_epoch(data, model, epoch, optimizer=optimizer, use_radius=use_radius)
     write_checkpoint(checkpoint_id=epoch, model=model, optimizer=optimizer, output_dir=output_dir)
     return train_info
 
-def evaluate(data, model, epoch, use_energy=False, use_momentum=False, use_radius=False):
+def evaluate(data, model, epoch, use_radius=False):
     with torch.no_grad():
-        val_info = do_epoch(data, model, epoch, optimizer=None, use_energy=use_energy, use_momentum=use_momentum, use_radius=use_radius)
+        val_info = do_epoch(data, model, epoch, optimizer=None, use_radius=use_radius)
     return val_info
 
-def do_epoch(data, model, epoch, optimizer=None, use_energy=False, use_momentum=False, use_radius=False):
-    global writer
+def do_epoch(data, model, epoch, optimizer=None, use_radius=False):
     if optimizer is None:
         # validation epoch
         model.eval()
@@ -322,9 +212,6 @@ def do_epoch(data, model, epoch, optimizer=None, use_energy=False, use_momentum=
 
     accum_info['auroc'] = roc_auc_score(correct, preds)
 
-    for m, v in accum_info.items():
-        writer.add_scalar(f'{m}/{phase}', v, epoch)
-
     accum_info['run_time'] = datetime.now() - start_time
     accum_info['run_time'] = str(accum_info['run_time']).split(".")[0]
 
@@ -332,8 +219,7 @@ def do_epoch(data, model, epoch, optimizer=None, use_energy=False, use_momentum=
 
     return accum_info
 
-def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
-    global writer
+def main():
     start_time = datetime.now()
     seed = 42
     np.random.seed(seed)
@@ -347,26 +233,13 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
 
     # Load configuration
     config = load_config(args.config)
-    if auto:
-        config['tensorboard_output_dir'] = parser_dict['tensorboard_output_dir']
-
-    hp = extract_hyperparameters(config)
     
     config['output_dir'] = os.path.join(config['output_dir'], f'experiment_{start_time:%Y-%m-%d_%H:%M:%S}')
     os.makedirs(config['output_dir'], exist_ok=True)
-    config['tensorboard_output_dir'] = os.path.join(config['tensorboard_output_dir'], f'experiment_{start_time:%Y-%m-%d_%H:%M:%S}')
-
 
     # Setup logging
     file_handler = config_logging(verbose=args.verbose, output_dir=config['output_dir'],
                    append=args.resume, rank=0)
-    if auto:
-        columns = get_terminal_columns()
-        logging.info('\n'.join(('',
-            "-" * columns,
-            f"trail number = {trails_number}",
-            "-" * columns
-        )))
     logging.info('Command line config: %s' % args)
     logging.info('Configuration: %s', config)
     logging.info('Saving job outputs to %s', config['output_dir'])
@@ -377,18 +250,14 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
     # os.environ["CUDA_VISIBLE_DEVICES"] = config.gpu
     torch.cuda.set_device(int(args.gpu))
 
-    if auto:
-        train_data, val_data = datasets
-    else:
-        # Load data
-        logging.info('Loading training data and validation data')
-        dconfig = copy.copy(config['data'])
-        del dconfig['use_momentum']
-        del dconfig['use_energy']
-        del dconfig['use_radius']
-        train_data, val_data = get_data_loaders(**dconfig)
-        logging.info('Loaded %g training samples', len(train_data.dataset))
-        logging.info('Loaded %g validation samples', len(val_data.dataset))
+    # Load data
+    logging.info('Loading training data and validation data')
+    dconfig = copy.copy(config['data'])
+    del dconfig['use_radius']
+    train_data, val_data, test_data = get_data_loaders(**dconfig)
+    logging.info('Loaded %g training samples', len(train_data.dataset))
+    logging.info('Loaded %g validation samples', len(val_data.dataset))
+    logging.info('Loaded %g test samples', len(test_data.dataset))
 
     # Create model instance
     if config['model']['type'] == 'particlenet-lite-laplace':
@@ -425,7 +294,6 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
     else:
         raise NotImplementedError(f'Model {config["model"]["type"]} not implemented.')
 
-    writer = SummaryWriter(log_dir=config['tensorboard_output_dir'])
     # Optimizer
     if config['optimizer']['type'] == 'Adam':
         optimizer = torch.optim.Adam(params=model.parameters(), lr=config['optimizer']['learning_rate'], weight_decay=config['optimizer']['weight_decay'])
@@ -471,8 +339,6 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
                 optimizer, 
                 epoch, 
                 config['output_dir'],
-                use_energy=config['data']['use_energy'], 
-                use_momentum=config['data']['use_momentum'],
                 use_radius=config['data']['use_radius']
                 )
         table = make_table(
@@ -497,8 +363,6 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
         train_loss[epoch-1], train_ri[epoch-1] = train_info['loss'], train_info['ri']
 
         val_info = evaluate(val_data, model, epoch, 
-                use_energy=config['data']['use_energy'], 
-                use_momentum=config['data']['use_momentum'],
                 use_radius=config['data']['use_radius'])
         table = make_table(
             ('Total loss', f"{val_info['loss']:.6f}"),
@@ -535,6 +399,29 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
     logging.info(f'Best validation acc: {best_val_ri:.4f}, best epoch: {best_epoch}.')
     logging.info(f'Training runtime: {str(datetime.now() - start_time).split(".")[0]}')
 
+    test_info = evaluate(test_data, best_model, epoch, 
+            use_radius=config['data']['use_radius'])
+    table = make_table(
+        ('Total loss', f"{test_info['loss']:.6f}"),
+        ('Rand Index', f"{test_info['ri']:.6f}"),
+        ('F-score', f"{test_info['fscore']:.4f}"),
+        ('Recall', f"{test_info['recall']:.4f}"),
+        ('Precision', f"{test_info['precision']:.4f}"),
+        ('True Positives', f"{test_info['true_positives']}"),
+        ('False Positives', f"{test_info['false_positives']}"),
+        ('True Negatives', f"{test_info['true_negatives']}"),
+        ('False Negatives', f"{test_info['false_negatives']}"),
+        ('AUC Score', f"{test_info['auroc']:.6f}"),
+        ('Runtime', f"{test_info['run_time']}")
+    )
+    logging.info('\n'.join((
+        '',
+        center_text(f"Test - {epoch:4}", ' '),
+        table
+        )))
+
+
+
     # Saving to disk
     if args.save:
         output_dir = os.path.join(config['output_dir'], 'summary')
@@ -565,22 +452,6 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
         best_df.to_csv(os.path.join(output_dir, "best_val_results.csv"), index=False)
 
 
-    writer.add_hparams(hp, {
-        'auroc/validation': best_val_auroc,
-        'ri/validation': best_val_ri,
-    },
-    hparam_domain_discrete = {
-        'd_metric/model': ['intertrack', 'einsum'],
-        'type/model': ['particlenet-laplace', 'particlenet-lite-laplace'],
-        'type/optimizer': ['Adam', 'SGD'],
-        'load_complete_graph/data': [True, False]
-
-    })
-    writer.close()
-    if auto:
-        return best_val_ri
-
-    
     logging.shutdown()
 
 if __name__ == '__main__':
