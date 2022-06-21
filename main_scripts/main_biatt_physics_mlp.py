@@ -12,9 +12,7 @@ from pprint import pprint
 from datetime import datetime
 from functools import partial
 from sklearn.metrics import roc_auc_score
-import matplotlib.pyplot as plt
 from icecream import ic
-from collections import defaultdict
 from collections import defaultdict
 
 import numpy as np
@@ -36,14 +34,6 @@ os.chdir(project_dir)
 from models.MLP import MLP
 from dataloaders import get_data_loaders
 from utils.log import write_checkpoint, load_config, load_checkpoint, config_logging, save_config, print_model_summary, get_terminal_columns, center_text, make_table
-# from augmentators import TrackHitDropping, BackgroundTrackDropping
-# from GCL.models import DualBranchContrast
-# import GCL.losses as L
-# import GCL.augmentors as A
-
-
-class ArgDict:
-    pass
 
 DEVICE = 'cuda:1'
 OLD_COLUMNS = None
@@ -223,23 +213,12 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
     # Load configuration
     config = load_config(args.config)
 
-    if auto:
-        config['tensorboard_output_dir'] = parser_dict['tensorboard_output_dir']
-    
     config['output_dir'] = os.path.join(config['output_dir'], f'experiment_{start_time:%Y-%m-%d_%H:%M:%S}')
     os.makedirs(config['output_dir'], exist_ok=True)
-    config['tensorboard_output_dir'] = os.path.join(config['tensorboard_output_dir'], f'experiment_{start_time:%Y-%m-%d_%H:%M:%S}')
 
     # Setup logging
     file_handler = config_logging(verbose=args.verbose, output_dir=config['output_dir'],
                    append=args.resume, rank=0)
-    if auto:
-        columns = get_terminal_columns()
-        logging.info('\n'.join(('',
-            "-" * columns,
-            f"trail number = {trails_number}",
-            "-" * columns
-        )))
     logging.info('Command line config: %s' % args)
     logging.info('Configuration: %s', config)
     logging.info('Saving job outputs to %s', config['output_dir'])
@@ -250,7 +229,7 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
     # os.environ["CUDA_VISIBLE_DEVICES"] = config.gpu
     torch.cuda.set_device(int(args.gpu))
 
-    name = config['name_on_wandb'] + f"-mod{config['model_mod']}-n_hid{config['model']['num_features']}-agg_activation{config['model']['aggregator_activation']}-use_radius{config['data']['use_radius']}-use_momentum{config['data']['use_momentum']}-ntrain{config['data']['n_train']}-lr{config['optimizer']['learning_rate']}-{config['optimizer']['type']}-b{config['data']['batch_size']}"
+    name = config['name_on_wandb'] + f"-mod{config['model_mod']}-n_hid{config['model']['num_features']}-agg_activation{config['model']['aggregator_activation']}-use_radius{config['data']['use_radius']}-ntrain{config['data']['n_train']}-lr{config['optimizer']['learning_rate']}-{config['optimizer']['type']}-b{config['data']['batch_size']}"
     logging.info(name)
     if args.use_wandb:
         wandb.init(
@@ -260,31 +239,17 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
             config=config,
         )
 
-    if auto:
-        train_data, val_data = datasets
-    else:
-        # Load data
-        logging.info('Loading training data and validation data')
-        dconfig = copy.copy(config['data'])
+    # Load data
+    logging.info('Loading training data and validation data')
+    dconfig = copy.copy(config['data'])
 
-        del dconfig['use_momentum']
-        del dconfig['use_energy']
-
-        train_data, val_data, test_data = get_data_loaders(**dconfig)
-        logging.info('Loaded %g training samples', len(train_data.dataset))
-        logging.info('Loaded %g validation samples', len(val_data.dataset))
-        logging.info('Loaded %g test samples', len(test_data.dataset))
+    train_data, val_data, test_data = get_data_loaders(**dconfig)
+    logging.info('Loaded %g training samples', len(train_data.dataset))
+    logging.info('Loaded %g validation samples', len(val_data.dataset))
+    logging.info('Loaded %g test samples', len(test_data.dataset))
 
     mconfig = copy.copy(config['model'])
-    if config['model_mod'] == 1:
-        from models.Bipartite_Attention1 import Bipartite_Attention1 as Model
-    elif config['model_mod'] == 2:
-        from models.Bipartite_Attention2 import Bipartite_Attention2 as Model
-    elif config['model_mod'] == 3:
-
-        from models.Bipartite_Attention3 import Bipartite_Attention3 as Model
-    elif config['model_mod'] == 4:
-        from models.Bipartite_Attention4 import Bipartite_Attention4 as Model
+    from models.Bipartite_Attention import Bipartite_Attention as Model
     model = Model(
         **mconfig
     )
@@ -475,5 +440,3 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
 
 if __name__ == '__main__':
     main()
-
-

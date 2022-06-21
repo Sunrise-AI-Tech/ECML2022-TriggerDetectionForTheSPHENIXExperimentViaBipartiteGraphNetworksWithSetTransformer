@@ -34,11 +34,6 @@ os.chdir(project_dir)
 # from models.ParticleNetLaplaceDiffpool import ParticleNetLaplaceDiffpool
 from dataloaders import get_data_loaders
 from utils.log import write_checkpoint, load_config, load_checkpoint, config_logging, save_config, print_model_summary, get_terminal_columns, center_text, make_table
-# from augmentators import TrackHitDropping, BackgroundTrackDropping
-# from GCL.models import DualBranchContrast
-# import GCL.losses as L
-# import GCL.augmentors as A
-
 
 DEVICE = 'cuda'
 
