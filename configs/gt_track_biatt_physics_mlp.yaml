@@ -4,7 +4,7 @@ tensorboard_output_dir: runs/biatt-physics/
 name_on_wandb: biatt-gttrack
 model_physics_path: train_results/cached_models/physics_hidden-size-8.pth.tar
 
-epochs: 50
+epochs: 10
 optimizer:
   type: Adam
   momentum: 0.9
