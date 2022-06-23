@@ -12,9 +12,7 @@ from pprint import pprint
 from datetime import datetime
 from functools import partial
 from sklearn.metrics import roc_auc_score
-import matplotlib.pyplot as plt
 from icecream import ic
-from collections import defaultdict
 from collections import defaultdict
 
 import numpy as np
@@ -31,18 +29,12 @@ sys.path.append(project_dir)
 os.chdir(project_dir)
 
 # Project dependencies
-from models.MLP import MLP
-from models.HitsLSTM import HitsLSTM
-# from models.ParticleNetLaplaceDiffpool import ParticleNetLaplaceDiffpool
-from models.ParticleNetLaplace import ParticleNetLaplace
 from dataloaders import get_data_loaders
 from utils.log import write_checkpoint, load_config, load_checkpoint, config_logging, save_config, print_model_summary, get_terminal_columns, center_text, make_table
-from torch.utils.tensorboard import SummaryWriter
 from sklearn.metrics import r2_score
 from scipy.stats import pearsonr, spearmanr
 
 DEVICE = 'cuda:1'
-OLD_COLUMNS = None
 
 def parse_args():
     """
@@ -50,7 +42,7 @@ def parse_args():
     :return: argparser instance
     """
     argparser = argparse.ArgumentParser(description=__doc__)
-    argparser.add_argument('--config', default='configs/physics.yaml')
+    argparser.add_argument('--config', default='configs/gt_track_physics.yaml')
     argparser.add_argument('-g', '--gpu', default='0', help='The gpu to run on')
     argparser.add_argument('--auto', action='store_true')
     argparser.add_argument('--save', dest='save', action='store_true', help='Whether to save all to disk')
@@ -180,8 +172,7 @@ def do_epoch(data):
 
     return accum_info
 
-def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
-    global writer
+def main():
     start_time = datetime.now()
     seed = 42
     np.random.seed(seed)
@@ -196,9 +187,6 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
     # Load configuration
     config = load_config(args.config)
 
-    if auto:
-        config['tensorboard_output_dir'] = parser_dict['tensorboard_output_dir']
-    
     config['output_dir'] = os.path.join(config['output_dir'], f'experiment_{start_time:%Y-%m-%d_%H:%M:%S}')
     os.makedirs(config['output_dir'], exist_ok=True)
     config['tensorboard_output_dir'] = os.path.join(config['tensorboard_output_dir'], f'experiment_{start_time:%Y-%m-%d_%H:%M:%S}')
@@ -206,13 +194,6 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
     # Setup logging
     file_handler = config_logging(verbose=args.verbose, output_dir=config['output_dir'],
                    append=args.resume, rank=0)
-    if auto:
-        columns = get_terminal_columns()
-        logging.info('\n'.join(('',
-            "-" * columns,
-            f"trail number = {trails_number}",
-            "-" * columns
-        )))
     logging.info('Command line config: %s' % args)
     logging.info('Configuration: %s', config)
     logging.info('Saving job outputs to %s', config['output_dir'])
@@ -223,21 +204,16 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
     # os.environ["CUDA_VISIBLE_DEVICES"] = config.gpu
     torch.cuda.set_device(int(args.gpu))
 
-    if auto:
-        train_data, val_data = datasets
-    else:
-        # Load data
-        logging.info('Loading training data and validation data')
-        dconfig = copy.copy(config['data'])
+    # Load data
+    logging.info('Loading training data and validation data')
+    dconfig = copy.copy(config['data'])
 
-        del dconfig['use_momentum']
-        del dconfig['use_pt']
-        del dconfig['use_energy']
+    del dconfig['use_pt']
 
-        train_data, val_data, test_data = get_data_loaders(**dconfig)
-        logging.info('Loaded %g training samples', len(train_data.dataset))
-        logging.info('Loaded %g validation samples', len(val_data.dataset))
-        logging.info('Loaded %g test samples', len(test_data.dataset))
+    train_data, val_data, test_data = get_data_loaders(**dconfig)
+    logging.info('Loaded %g training samples', len(train_data.dataset))
+    logging.info('Loaded %g validation samples', len(val_data.dataset))
+    logging.info('Loaded %g test samples', len(test_data.dataset))
 
 
     # Metrics
@@ -325,9 +301,6 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
         )))
 
 
-
-    if auto:
-        return best_val_ri
 
     logging.shutdown()
 

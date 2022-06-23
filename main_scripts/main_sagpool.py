@@ -34,7 +34,6 @@ class ArgDict:
     pass
 
 DEVICE = 'cuda:1'
-OLD_COLUMNS = None
 
 def parse_args():
     """

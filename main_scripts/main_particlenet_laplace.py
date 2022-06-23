@@ -12,7 +12,6 @@ from pprint import pprint
 from datetime import datetime
 from functools import partial
 from sklearn.metrics import roc_auc_score
-import matplotlib.pyplot as plt
 from icecream import ic
 from collections import defaultdict
 import tqdm
