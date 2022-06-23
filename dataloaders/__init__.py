@@ -11,28 +11,9 @@ def get_data_loaders(name, batch_size, distributed=False,
                      **data_args):
     """This may replace the datasets function above"""
     collate_fn = default_collate
-    if name == 'hitgraphs_sparse_new':
-        from torch_geometric.data import Batch
-        from . import hitgraphs_sparse_new
-        train_dataset, valid_dataset = hitgraphs_sparse_new.get_datasets(**data_args)
-        collate_fn = Batch.from_data_list
-    elif name == 'trkset':
-        from torch_geometric.data import Batch
-        from . import trkvec
-        train_dataset, valid_dataset = trkvec.get_datasets(**data_args)
-        collate_fn = Batch.from_data_list
-    elif name == 'trkvec':
-        from . import trkvec_sampler
-        return trkvec_sampler.get_data_loaders(name, batch_size, **data_args)
-    elif name == 'trkvec-ecml':
+    if name == 'trkvec-ecml':
         from . import trkvec_ecml
         return trkvec_ecml.get_data_loaders(name, batch_size, **data_args)
-    elif name == 'trkvec_predicted':
-        from . import predicted_trkvec
-        return predicted_trkvec.get_data_loaders(name, batch_size, **data_args)
-    elif name == 'trkvec_mix':
-        from . import mix_trkvec
-        return mix_trkvec.get_data_loaders(name, batch_size, **data_args)
     else:
         raise Exception('Dataset %s unknown' % name)
 
