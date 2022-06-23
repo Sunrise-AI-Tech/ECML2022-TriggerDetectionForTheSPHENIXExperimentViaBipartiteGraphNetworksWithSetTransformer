@@ -55,3 +55,43 @@ Finally, run the following command to perform training and evaluation of the Bip
 ```
 python main_scripts/main_biatt_physics_mlp.py
 ```
+
+## Training and Evalution of Set Transformer
+Specify the Set Transformer model by modifying the following fields in `configs/gt_track_settrans.yaml`:
+
+ - `num_inds`: The number of inducing points used in each set attention block.
+ - `dim_hidden`: The dimension of fully connected layers used in the hidden layers of the Set Transformer.
+ - `num_heads`: The number of heads used in each set attention block.
+ - `ln`: Specifies whether to apply a layer norm after each set attention block.
+ 
+ 
+Run the following command to perform training and evaluation of Set Transformer:
+
+```
+python main_scripts/main_settrans.py
+```
+
+## Training and Evaluation of ParticleNet+SagPool
+Specify the ParticleNet model by modifying the following fields in `configs/gt_track_particlenet.yaml` and in `configs/gt_track_sagpool.yaml`:
+
+ - `k`: The number of nearest neighbors to use in the edge convolution blocks.
+ - `hidden_dim`: The dimension of fully connected layers used in each ParticleNet layer
+ - `layer_norm`: Specifies whether to apply layer normalization in the ParticleNet layers.
+ - `affinity_loss_CE_weight`: Specifies the weight of the cross-entropy loss for the affinity matrix and ground-truth matrix.
+ - `affinity_loss_Lp_weight`: Specifies the weight of the laplacian loss for the affinity matrix.
+ - `affinity_loss_11_weight`: Specifies the weight of the L\_11 loss of the affinity matrix.
+ - `affinity_loss_frobenius_weight`: Specifies the weight of the frobenius loss of the affinity matrix.
+ 
+Train the ParticleNet model. The Sagpool model will use this model to obtain an a predicted affinity matrix for each event.
+The results will be placed in the directory specified by the `output_dir` field in `configs/gt_track_particlenet.yaml`. Looking at end of `out_0.log`, find the epoch that had the best validation accuracy. Then, modify the `checkpoint_file_particlenet` field in `configs/gt_track_sagpool.yaml` to the checkpoint file of the best epoch of the ParticleNet model.
+
+```
+python main_scripts/main_particlenet.py
+```
+Specify the SagPool model using the following fields in `config/gt_track_sagpool.yaml`. 
+
+ - `is_hierarchical`: Specifies whether to perform hierarchical pooling.
+ - `nhid`: Specifies the dimensions of fully connected layers used in each Sagpool layer.
+ - `pooling_ratio`: Specifies the Sagpool pooling ratio.
+ - `dropout_ratio`: Specifies the dropout ratio used in dropout layers in the model.
+ 
