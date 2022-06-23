@@ -99,7 +99,7 @@ def get_distance(points):
     b1 = b1.view(n_b, n_t * n_t, n_d)
 
     [len_b, len_m, len_d] = a0.size()
-    res = torch.cuda.FloatTensor(len_b,len_m, 1).fill_(0)
+    res = torch.cuda.FloatTensor(len_b,len_m, 1).fill_(0).to(points.device)
     isParallel = isParallelMatrix(a0, a1, b0, b1, 2)
     # ic(isParallel.shape)
     # ic(res.shape)
@@ -278,13 +278,13 @@ class ParticleNetLaplace(nn.Module):
         # ic(A_true, A_true.shape, A_true.dtype)
 
         if self.affinity_loss:
-            losses_ce = torch.zeros(A_true.shape[0]).cuda()
+            losses_ce = torch.zeros(A_true.shape[0]).to(A_pred.device)
             for i_A_true in range(A_true.shape[0]):
                 loss_ce_iter = 0
                 A_true_iter = A_true[i_A_true]
                 is_zero = (A_true_iter == 0)
                 is_nonzero = (A_true_iter != 0)
-                mask = torch.cuda.FloatTensor(A_pred[0].shape).fill_(1)
+                mask = torch.cuda.FloatTensor(A_pred[0].shape).fill_(1).to(A_pred.device)
 
                 if not (torch.sum(is_zero) == 0 or torch.sum(is_nonzero) == 0 ):
                     if (torch.sum(is_zero) < torch.sum(is_nonzero)):
@@ -315,7 +315,7 @@ class ParticleNetLaplace(nn.Module):
                     ic(A_pred.shape)
                     ic(torch.sum(mask))
                     ic(torch.sum(A_true == 0))
-                    loss_ce_iter = torch.zeros(1).cuda()
+                    loss_ce_iter = torch.zeros(1).to(A_pred.device)
                 losses_ce[i_A_true] = loss_ce_iter
             loss_ce = torch.sum(losses_ce)
             # ic(self.affinity_loss_CE_weight, self.affinity_loss_Lp_weight)
@@ -360,7 +360,7 @@ class EdgeConvolution(nn.Module):
         super(EdgeConvolution, self).__init__()
         self._K_init = K
         self._k = K
-        self._point_indices = torch.LongTensor(point_indices).cuda()
+        self._point_indices = torch.LongTensor(point_indices)
         self._input_dim = input_dim
         self._mlp_dims = mlp_dims
         self._activation = activation
@@ -388,7 +388,7 @@ class EdgeConvolution(nn.Module):
         X: Tensor of shape [n_minibatches, n_track_features, n_tracks]
         """
 #        X = X.transpose(-1, -2)
-        points = X.index_select(1, self._point_indices)
+        points = X.index_select(1, self._point_indices.to(X.device))
         deltas = points.transpose(-1, 0).unsqueeze(1) - points.transpose(-1, 0)
         self._points = points
         self._deltas = deltas

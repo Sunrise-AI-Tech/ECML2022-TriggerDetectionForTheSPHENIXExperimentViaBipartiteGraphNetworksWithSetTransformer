@@ -48,3 +48,4 @@ runs/tmp/
 *.wmv
 *.path.tar
 
+train_results/

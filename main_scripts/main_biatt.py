@@ -247,7 +247,7 @@ def main():
     logging.info('Loaded %g test samples', len(test_data.dataset))
 
     mconfig = copy.copy(config['model'])
-    mconfig['num_features'] += config['data']['use_radius']
+    mconfig['num_features'] += config['data']['use_radius'] + 13*config['data']['add_geo_features']
 
     from models.Bipartite_Attention import Bipartite_Attention as Model
     model = Model(

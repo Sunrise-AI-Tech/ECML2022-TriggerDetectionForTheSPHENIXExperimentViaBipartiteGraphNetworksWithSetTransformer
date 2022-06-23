@@ -4,17 +4,12 @@ import sys
 import argparse
 import copy
 import shutil
-import json
 import logging
 import yaml
 import pickle
-from pprint import pprint
 from datetime import datetime
-from functools import partial
 from sklearn.metrics import roc_auc_score
-import matplotlib.pyplot as plt
 from icecream import ic
-from collections import defaultdict
 from collections import defaultdict
 
 import numpy as np
@@ -22,7 +17,6 @@ import pandas as pd
 import torch
 import torch.nn.functional as F
 import torch.nn as nn
-import pickle
 import torch_geometric
 
 # Change working directory to project's main directory, and add it to path - for library and config usages
@@ -32,18 +26,14 @@ os.chdir(project_dir)
 
 # Project dependencies
 from models.SAGPool import SAGPoolNet
-# from models.ParticleNetLaplaceDiffpool import ParticleNetLaplaceDiffpool
 from models.ParticleNetLaplace import ParticleNetLaplace
 from dataloaders import get_data_loaders
 from utils.log import write_checkpoint, load_config, load_checkpoint, config_logging, save_config, print_model_summary, get_terminal_columns, center_text, make_table
-from augmentators import TrackHitDropping, BackgroundTrackDropping
-from GCL.models import DualBranchContrast
-import GCL.losses as L
 
 class ArgDict:
     pass
 
-DEVICE = 'cuda:0'
+DEVICE = 'cuda:1'
 OLD_COLUMNS = None
 
 def parse_args():
@@ -94,73 +84,19 @@ def calc_metrics(trig, pred, accum_info):
 
     return accum_info
 
-def extract_hyperparameters(config):
-    hp = {}
-    hp['checkpoint_file_pnl'] = config['checkpoint_file_pnl']
-    hp['threshold'] = config['threshold']
-    hp['type/optimizer'] = config['optimizer']['type']
-    hp['momentum/optimizer'] = config['optimizer']['momentum']
-    hp['weight_decay/optimizer'] = config['optimizer']['weight_decay']
-    hp['learning_rate/optimizer'] = config['optimizer']['learning_rate']
-    hp['type/adj_model'] = config['adj_model']['type']
-    hp['hidden_dim/adj_model'] = config['adj_model']['hidden_dim']
-    hp['hidden_activation/adj_model'] = config['adj_model']['hidden_activation']
-    hp['layer_norm/adj_model'] = config['adj_model']['layer_norm']
-    hp['d_metric/adj_model'] = config['adj_model']['d_metric']
-    hp['k/adj_model'] = config['adj_model']['k']
-    hp['hidden_dim/GNN_config/adj_model'] = config['adj_model']['GNN_config']['hidden_dim']
-    hp['hidden_activation/GNN_config/adj_model'] = config['adj_model']['GNN_config']['hidden_activation']
-    hp['layer_norm/GNN_config/adj_model'] = config['adj_model']['GNN_config']['layer_norm']
-    hp['n_graph_iters/GNN_config/adj_model'] = config['adj_model']['GNN_config']['n_graph_iters']
-    hp['name/data'] = config['data']['name']
-    hp['n_train/data'] = config['data']['n_train']
-    hp['n_valid/data'] = config['data']['n_valid']
-    hp['batch_size/data'] = config['data']['batch_size']
-    hp['load_complete_graph/data'] = config['data']['load_complete_graph']
-    hp['use_momentum/data'] = config['data']['use_momentum']
-    hp['use_energy/data'] = config['data']['use_energy']
-    hp['use_radius/data'] = config['data']['use_radius']
 
-
-    hp['is_hierarchical/model'] = config['model']['is_hierarchical']
-    hp['num_features/model'] = config['model']['num_features']
-    hp['use_edge_attr/model'] = config['model']['use_edge_attr']
-    hp['nhid/model'] = config['model']['nhid']
-    hp['num_classes/model'] = config['model']['num_classes']
-    hp['pooling_ratio/model'] = config['model']['pooling_ratio']
-    hp['dropout_ratio/model'] = config['model']['dropout_ratio']
-
-    hp['aug1/contrast'] = config['contrast']['aug1']
-    hp['aug1_param/contrast'] = config['contrast']['aug1_param']
-    if type(hp['aug1_param/contrast']) is list:
-        hp['aug1_param/contrast'] = str(hp['aug1_param/contrast'])
-
-    hp['aug2/contrast'] = config['contrast']['aug2']
-    hp['aug2_param/contrast'] = config['contrast']['aug2_param']
-    if type(hp['aug2_param/contrast']) is list:
-        hp['aug2_param/contrast'] = str(hp['aug2_param/contrast'])
-
-    hp['end_epoch/contrast'] = config['contrast']['end_epoch']
-    hp['ce_weight/contrast'] = config['contrast']['ce_weight']
-    hp['use_extra_pos/contrast'] = config['contrast']['use_extra_pos']
-    hp['temperature/loss/contrast'] = config['contrast']['loss']['temperature']
-
-    return hp
-
-
-
-def train(data, model_pnl, model, optimizer, epoch, output_dir, use_wandb=False,  threshold = 0.5, contrast=False, ce_weight=1, contrast_loss_fn=None, use_extra_pos=True, use_energy=False, use_momentum=False, use_radius=False):
-    train_info = do_epoch(data, model_pnl, model, epoch, optimizer, threshold = threshold, contrast=contrast, ce_weight=ce_weight, contrast_loss_fn=contrast_loss_fn, use_extra_pos=use_extra_pos, use_energy=use_energy, use_momentum=use_momentum, use_radius=use_radius)
+def train(data, model_pnl, model, optimizer, epoch, output_dir, use_wandb=False,  threshold=0.5, use_radius=False):
+    train_info = do_epoch(data, model_pnl, model, epoch, optimizer, threshold=threshold, use_radius=use_radius)
     write_checkpoint(checkpoint_id=epoch, model=model, optimizer=optimizer, output_dir=output_dir)
     return train_info
 
-def evaluate(data, model_pnl, model, epoch, loss_config=None, threshold=0.5, use_momentum=False, use_energy=False, use_radius=False):
+def evaluate(data, model_pnl, model, epoch, loss_config=None, threshold=0.5, use_radius=False):
     with torch.no_grad():
-        val_info = do_epoch(data, model_pnl, model, epoch, optimizer=None, threshold=threshold, use_energy=use_energy, use_momentum=use_momentum, use_radius=use_radius)
+        val_info = do_epoch(data, model_pnl, model, epoch, optimizer=None, threshold=threshold, use_radius=use_radius)
     return val_info
 
 
-def do_epoch(data, model_pnl, model, epoch, optimizer=None, threshold = 0.5, contrast=False, ce_weight=1, contrast_loss_fn=None, use_extra_pos=True, use_energy=False, use_momentum=False, use_radius=False):
+def do_epoch(data, model_pnl, model, epoch, optimizer=None, threshold=0.5, use_radius=False):
     if optimizer is None:
         # validation epoch
         model.eval()
@@ -199,38 +135,28 @@ def do_epoch(data, model_pnl, model, epoch, optimizer=None, threshold = 0.5, con
     
     for batch in data:
         tracks, vtx, partitions_as_graph, n_tracks, trig, energy, momentum, is_trigger_track, radii = batch
-        tracks = tracks.to(DEVICE, torch.float).transpose(-1, -2)
+        tracks = tracks.to(DEVICE, torch.float)
         trig = (trig.to(DEVICE) == 1).long()
         vtx = vtx.to(DEVICE)
         batch_size = tracks.shape[0]
         num_insts += batch_size
 
-        if tracks.shape[0] == 1:
-            skipped_batches += 1
-            try:
-               pred_x, edge_vals = model_pnl(tracks[:, :15, :])
-            except ValueError:
-                continue
-        else:
-           pred_x, edge_vals = model_pnl(tracks[:, :15, :])
-
-        pred_x = pred_x.transpose(2, 1)
-        tracks = tracks.transpose(2, 1)
-
-        if use_energy:
-            energy = energy.to(DEVICE)
-            energy = energy.to(tracks.dtype)
-            tracks = torch.cat((tracks, energy), dim=-1)
-        if use_momentum:
-            momentum = momentum.to(DEVICE)
-            momentum = momentum.to(tracks.dtype)
-            momentum = momentum.unsqueeze(-1)
-            tracks = torch.cat((tracks, momentum), dim=-1)
-
         if use_radius:
             radii = radii.to(DEVICE)
             radii = radii.to(tracks.dtype)
             tracks = torch.cat((tracks, radii), dim=-1)
+
+
+        if tracks.shape[0] == 1:
+            skipped_batches += 1
+            try:
+                pred_x, edge_vals = model_pnl(tracks.transpose(-1, -2))
+            except ValueError:
+                continue
+        else:
+           pred_x, edge_vals = model_pnl(tracks.transpose(-1, -2))
+
+        pred_x = pred_x.transpose(2, 1)
 
 
         data_x = torch.cat((tracks, pred_x), dim=-1)
@@ -264,32 +190,12 @@ def do_epoch(data, model_pnl, model, epoch, optimizer=None, threshold = 0.5, con
             batch=data_batch,
             batch_size=size_b,
             edge_attr=data_edge_attr,
-            ).cuda()
+            ).to(DEVICE)
             
         loss = 0
-        if contrast:
-            is_trigger_track = is_trigger_track.to(DEVICE)
-            g1_a, g2_a = model.augment(data_to_sagpool, trigger_tracks=data_is_trigger_track)
-            g1 = model(g1_a, contrast=True)
-            g2 = model(g2_a, contrast=True)
-            extra_pos_mask = None
-
-            n = data_to_sagpool.y.shape[0]
-            t1 = data_to_sagpool.y.unsqueeze(0).repeat(n, 1)
-            t2 = data_to_sagpool.y.unsqueeze(1).repeat(1, n)
-            extra_pos_mask = None
-            if use_extra_pos:
-                extra_pos_mask = (t1 == t2).float()
-
-            contrast_loss = contrast_loss_fn(
-                g1=g1, g2=g2, batch=data_to_sagpool.batch, extra_pos_mask=extra_pos_mask)
-
-            loss += contrast_loss
-            accum_info['loss_contrast'] += contrast_loss.item() * batch_size
-
 
         pred_labels = model(data_to_sagpool)
-        ce_loss = ce_weight*F.nll_loss(pred_labels, data_to_sagpool.y)
+        ce_loss = F.nll_loss(pred_labels, data_to_sagpool.y)
         loss += ce_loss
         accum_info['loss_ce'] += ce_loss.item() * batch_size
 
@@ -336,7 +242,7 @@ def do_epoch(data, model_pnl, model, epoch, optimizer=None, threshold = 0.5, con
 
     return accum_info
 
-def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
+def main():
     start_time = datetime.now()
     seed = 42
     np.random.seed(seed)
@@ -350,7 +256,6 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
 
     # Load configuration
     config = load_config(args.config)
-    hp = extract_hyperparameters(config)
 
     config['output_dir'] = os.path.join(config['output_dir'], f'experiment_{start_time:%Y-%m-%d_%H:%M:%S}')
     os.makedirs(config['output_dir'], exist_ok=True)
@@ -358,13 +263,6 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
     # Setup logging
     file_handler = config_logging(verbose=args.verbose, output_dir=config['output_dir'],
                    append=args.resume, rank=0)
-    if auto:
-        columns = get_terminal_columns()
-        logging.info('\n'.join(('',
-            "-" * columns,
-            f"trail number = {trails_number}",
-            "-" * columns
-        )))
     logging.info('Command line config: %s' % args)
     logging.info('Configuration: %s', config)
     logging.info('Saving job outputs to %s', config['output_dir'])
@@ -375,21 +273,14 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
     # os.environ["CUDA_VISIBLE_DEVICES"] = config.gpu
     torch.cuda.set_device(int(args.gpu))
 
-    if auto:
-        train_data, val_data = datasets
-    else:
-        # Load data
-        logging.info('Loading training data and validation data')
-        dconfig = copy.copy(config['data'])
+    # Load data
+    logging.info('Loading training data and validation data')
+    dconfig = copy.copy(config['data'])
 
-        del dconfig['use_energy']
-        del dconfig['use_momentum']
-
-
-        train_data, val_data, test_data = get_data_loaders(**dconfig)
-        logging.info('Loaded %g training samples', len(train_data.dataset))
-        logging.info('Loaded %g validation samples', len(val_data.dataset))
-        logging.info('Loaded %g test samples', len(test_data.dataset))
+    train_data, val_data, test_data = get_data_loaders(**dconfig)
+    logging.info('Loaded %g training samples', len(train_data.dataset))
+    logging.info('Loaded %g validation samples', len(val_data.dataset))
+    logging.info('Loaded %g test samples', len(test_data.dataset))
 
 
     # Create model instance
@@ -401,7 +292,7 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
         )
         mlp_params = ((128, 0.1),)
         final_pooling = 'mean'
-        input_dim = 15
+        input_dim = config['adj_model']['num_features'] + config['data']['use_radius'] + 13*config['data']['add_geo_features']
         model_pnl = ParticleNetLaplace(
                 conv_params,
                 mlp_params,
@@ -417,7 +308,8 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
         )
         mlp_params = ((256, 0.1),)
         final_pooling = 'mean'
-        input_dim = 15
+        input_dim = config['adj_model']['num_features'] + config['data']['use_radius'] + 13*config['data']['add_geo_features']
+        ic(input_dim)
         model_pnl = ParticleNetLaplace(
                 conv_params,
                 mlp_params,
@@ -428,29 +320,15 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
     else:
         raise NotImplementedError(f'Model {config["adj_model"]["type"]} not implemented.')
 
-    augmentators = {
-        'TrackHitDropping': lambda x: TrackHitDropping(x),
-        'NodeDropping': lambda x: A.NodeDropping(pn=x),
-        'EdgeRemoving': lambda x: A.EdgeRemoving(pn=x),
-        'BackgroundTrackDropping': lambda x: BackgroundTrackDropping(x),
-        'Identity': lambda x: A.Identity()
-    }
-
-    aug1 = augmentators[config['contrast']['aug1']](
-        config['contrast']['aug1_param'])
-    aug2 = augmentators[config['contrast']['aug2']](
-        config['contrast']['aug2_param'])
-
     mconfig = copy.copy(config['model'])
-    mconfig['num_features'] += 3*config['data']['use_energy'] + config['data']['use_momentum'] + config['data']['use_radius']
+    mconfig['num_features'] += config['data']['use_radius'] + 13*config['data']['add_geo_features'] + config['adj_model']['GNN_config']['hidden_dim']
     model = SAGPoolNet(
         **mconfig
     )
-    model.augmentor = (aug1, aug2)
     model_pnl = model_pnl.to(DEVICE)
     model = model.to(DEVICE)
 
-    checkpoint_file_pnl = config['checkpoint_file_pnl']
+    checkpoint_file_pnl = config['checkpoint_file_particlenet']
     model_pnl = load_checkpoint(checkpoint_file_pnl, model_pnl)
     model_pnl.eval()
 
@@ -493,19 +371,9 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
     best_val_ri = -1
     best_val_auroc = -1
     best_model = None
-    contrast_loss_fn = DualBranchContrast(
-            loss=L.InfoNCE(tau=config['contrast']['loss']['temperature']),
-            mode='G2G'
-        ).cuda()
-
     
     for epoch in range(1, config['epochs'] + 1):
-        contrast = epoch <= config['contrast']['end_epoch']
-        ce_weight = config['contrast']['ce_weight'] if contrast else 1
-        train_info = train(train_data, model_pnl, model, optimizer, epoch, config['output_dir'], threshold=config['threshold'], contrast=contrast, contrast_loss_fn=contrast_loss_fn, ce_weight=ce_weight,
-                use_energy=config['data']['use_energy'], use_momentum=config['data']['use_momentum'],
-                use_radius=config['data']['use_radius']
-                )
+        train_info = train(train_data, model_pnl, model, optimizer, epoch, config['output_dir'], threshold=config['threshold'], use_radius=config['data']['use_radius'])
         table = make_table(
             ('Total loss', f"{train_info['loss']:.6f}"),
             ('Rand Index', f"{train_info['ri']:.6f}"),
@@ -528,7 +396,6 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
         train_loss[epoch-1], train_ri[epoch-1] = train_info['loss'], train_info['ri']
 
         val_info = evaluate(val_data, model_pnl, model, epoch, threshold=config['threshold'],
-                use_energy=config['data']['use_energy'], use_momentum=config['data']['use_momentum'],
                 use_radius=config['data']['use_radius']
                 )
         table = make_table(
@@ -567,7 +434,6 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
     logging.info(f'Training runtime: {str(datetime.now() - start_time).split(".")[0]}')
 
     test_info = evaluate(test_data, model_pnl, best_model, epoch,
-            use_energy=config['data']['use_energy'], use_momentum=config['data']['use_momentum'],
             use_radius=config['data']['use_radius']
         )
 
@@ -618,9 +484,6 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
         best_dict = {'best_val_ri': best_val_ri, 'best_epoch': best_epoch}
         best_df = pd.DataFrame(best_dict, index=[0])
         best_df.to_csv(os.path.join(output_dir, "best_val_results.csv"), index=False)
-
-    if auto:
-        return best_val_ri
 
     logging.shutdown()
 

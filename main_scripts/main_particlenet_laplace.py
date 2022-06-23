@@ -267,7 +267,7 @@ def main():
         )
         mlp_params = ((128, 0.1),)
         final_pooling = 'mean'
-        input_dim = 28 + config['data']['use_radius']
+        input_dim = config['adj_model']['num_features'] + config['data']['use_radius'] + 13*config['data']['add_geo_features']
         model = ParticleNetLaplace(
                 conv_params,
                 mlp_params,
@@ -283,7 +283,7 @@ def main():
         )
         mlp_params = ((256, 0.1),)
         final_pooling = 'mean'
-        input_dim = 28 + config['data']['use_radius']
+        input_dim = config['adj_model']['num_features'] + config['data']['use_radius'] + 13*config['data']['add_geo_features']
         model = ParticleNetLaplace(
                 conv_params,
                 mlp_params,

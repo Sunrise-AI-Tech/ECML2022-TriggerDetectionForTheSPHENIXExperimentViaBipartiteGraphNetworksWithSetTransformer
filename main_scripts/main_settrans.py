@@ -242,7 +242,7 @@ def main():
     logging.info('Loaded %g validation samples', len(val_data.dataset))
     logging.info('Loaded %g test samples', len(test_data.dataset))
 
-    config['model']['dim_input'] += config['data']['use_radius']
+    config['model']['dim_input'] += config['data']['use_radius'] + 13*config['data']['add_geo_features']
     model = SetTransformer(
         **config['model']
     )

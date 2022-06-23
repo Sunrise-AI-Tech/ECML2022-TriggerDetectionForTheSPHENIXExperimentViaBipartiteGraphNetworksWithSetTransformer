@@ -1,15 +1,19 @@
-output_dir: train_results/particlenet-laplace/
+output_dir: train_results/sagpool/
+
 epochs: 50
+checkpoint_file_particlenet: '/home1/giorgian/projects/ecml-publish/train_results/cached-models/pnet/checkpoints/model_checkpoint_045.pth.tar'
+
+threshold: 1.0
 
 optimizer:
   type: Adam
   momentum: 0.9
+  learning_rate: 0.0001
   weight_decay: 0.0001
-  learning_rate: 0.001
 
-model:
-  type: particlenet-laplace
+adj_model:
   num_features: 15
+  type: particlenet-laplace
   hidden_dim: 20
   hidden_activation: Tanh
   layer_norm: True
@@ -25,6 +29,16 @@ model:
     hidden_activation: Tanh
     layer_norm: True
     n_graph_iters: 3
+
+
+model:
+  is_hierarchical: True
+  num_features: 15
+  nhid: 256
+  num_classes: 2
+  pooling_ratio: 0.75
+  dropout_ratio: 0.7
+  use_edge_attr: True
 
 data:
         name: trkvec-ecml
