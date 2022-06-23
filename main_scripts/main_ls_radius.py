@@ -208,8 +208,6 @@ def main():
     logging.info('Loading training data and validation data')
     dconfig = copy.copy(config['data'])
 
-    del dconfig['use_pt']
-
     train_data, val_data, test_data = get_data_loaders(**dconfig)
     logging.info('Loaded %g training samples', len(train_data.dataset))
     logging.info('Loaded %g validation samples', len(val_data.dataset))

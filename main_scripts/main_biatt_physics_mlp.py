@@ -248,12 +248,14 @@ def main(auto=False, parser_dict=None, trails_number=None, datasets=None):
     logging.info('Loaded %g test samples', len(test_data.dataset))
 
     mconfig = copy.copy(config['model'])
+    mconfig['num_features'] += 13*config['data']['add_geo_features'] + 1
     from models.Bipartite_Attention import Bipartite_Attention as Model
     model = Model(
         **mconfig
     )
     model = model.to(DEVICE)
     mconfig = copy.copy(config['physics_model'])
+    mconfig['n_features'] += 13*config['data']['add_geo_features'] + config['data']['use_radius']
     model_physics = MLP(
             **mconfig
     )

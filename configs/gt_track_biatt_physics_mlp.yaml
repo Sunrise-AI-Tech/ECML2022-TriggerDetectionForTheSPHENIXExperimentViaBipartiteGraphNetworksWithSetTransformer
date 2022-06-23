@@ -13,13 +13,13 @@ optimizer:
 
 model_mod: 4
 model:
-  num_features: 29 # raw track features + physics MLP
+  num_features: 15 
   layers_spec: [[64, 16], [64, 16], [64, 16]]
   num_classes: 2
   aggregator_activation: softmax
 
 physics_model:
-  n_features: 29 # hits + estimated radius + geometric features
+  n_features: 15 
   n_hidden: 4
   hidden_size: 8
   hidden_activation: ReLU

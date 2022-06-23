@@ -1,7 +1,6 @@
 output_dir: train_results/physics/
-tensorboard_output_dir: runs/physics/
 
-epochs: 50
+epochs: 10
 
 optimizer:
   type: Adam
@@ -10,8 +9,7 @@ optimizer:
   weight_decay: 0.0001
 
 model:
-  type: MLP
-  n_features: 29 # hits + estimated radius + geometric features
+  n_features: 15
   n_hidden: 4
   hidden_size: 256
   hidden_activation: ReLU
@@ -30,7 +28,6 @@ data:
         add_geo_features: True
         use_radius: True
 
-        use_pt: True
         batch_size: 32
         n_workers: 4
         load_complete_graph: False
