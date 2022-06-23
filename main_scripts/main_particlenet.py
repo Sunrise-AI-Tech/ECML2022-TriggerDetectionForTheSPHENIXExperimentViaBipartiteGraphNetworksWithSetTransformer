@@ -40,7 +40,7 @@ def parse_args():
     :return: argparser instance
     """
     argparser = argparse.ArgumentParser(description=__doc__)
-    argparser.add_argument('--config', default='configs/cluster_of_tracks_particlenet_laplace.yaml')
+    argparser.add_argument('--config', default='configs/gt_track_particlenet.yaml')
     argparser.add_argument('-g', '--gpu', default='0', help='The gpu to run on')
     argparser.add_argument('--auto', action='store_true')
     argparser.add_argument('--no_save', dest='save', action='store_false')

@@ -1,4 +1,4 @@
-output_dir: train_results/particlenet-laplace/
+output_dir: train_results/particlenet/
 epochs: 50
 
 optimizer:
