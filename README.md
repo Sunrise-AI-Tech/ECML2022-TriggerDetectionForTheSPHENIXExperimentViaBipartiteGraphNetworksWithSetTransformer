@@ -1,6 +1,6 @@
 # Bipartite Neural Network
 
-# Dependencies
+## Dependencies
 ```
 conda create -n biatt cudatoolkit=11.3 numpy pandas python pytorch pytorch-scatter pyyaml scikit-learn tqdm pyg -c pyg -c pytorch
 pip install -r requirements.txt
