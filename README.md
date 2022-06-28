@@ -1,0 +1,1 @@
+# ECML2022-TriggerDetectionForTheSPHENIXExperimentViaBipartiteGraphNetworksWithSetTransformer
