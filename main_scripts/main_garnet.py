@@ -30,7 +30,6 @@ from models.GarNet import GarNet
 # from models.ParticleNetLaplaceDiffpool import ParticleNetLaplaceDiffpool
 from dataloaders import get_data_loaders
 from utils.log import write_checkpoint, load_config, load_checkpoint, config_logging, save_config, print_model_summary, get_terminal_columns, center_text, make_table
-from torch.utils.tensorboard import SummaryWriter
 
 DEVICE = 'cuda'
 
@@ -210,7 +209,6 @@ def main():
 
     config['output_dir'] = os.path.join(config['output_dir'], f'experiment_{start_time:%Y-%m-%d_%H:%M:%S}')
     os.makedirs(config['output_dir'], exist_ok=True)
-    config['tensorboard_output_dir'] = os.path.join(config['tensorboard_output_dir'], f'experiment_{start_time:%Y-%m-%d_%H:%M:%S}')
 
     # Setup logging
     file_handler = config_logging(verbose=args.verbose, output_dir=config['output_dir'],

@@ -1,7 +1,7 @@
-output_dir: train_results/pns/
+output_dir: train_results/sagpool/
 
 epochs: 50
-checkpoint_file_particlenet: '/home1/giorgian/projects/ecml-publish/train_results/cached_models/pnet/checkpoints/model_checkpoint_045.pth.tar'
+checkpoint_file_particlenet: 'train_results/cached_models/pnet/checkpoints/model_checkpoint_045.pth.tar'
 
 threshold: 1.0
 
@@ -42,9 +42,9 @@ model:
 
 data:
         name: trkvec-ecml
-        train_input_dir: /home/giorgian/data/presplit/train_gt
-        valid_input_dir: /home/giorgian/data/presplit/valid_gt
-        test_input_dir: /home/giorgian/data/presplit/test_gt
+        train_input_dir: data/presplit/train_gt
+        valid_input_dir: data/presplit/valid_gt
+        test_input_dir: data/presplit/test_gt
         n_train: 1000000
         n_valid: 400000
         n_test: 400000

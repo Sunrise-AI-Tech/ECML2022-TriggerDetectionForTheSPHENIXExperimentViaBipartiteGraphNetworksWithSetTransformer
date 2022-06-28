@@ -1,5 +1,4 @@
-output_dir: train_results/set/
-tensorboard_output_dir: runs/set/
+output_dir: train_results/settrans/
 
 name_on_wandb: transset-gttrack-ecml
 epochs: 10
@@ -22,9 +21,9 @@ model:
 
 data:
         name: trkvec-ecml
-        train_input_dir: /home/giorgian/data/presplit/train_gt
-        valid_input_dir: /home/giorgian/data/presplit/valid_gt
-        test_input_dir: /home/giorgian/data/presplit/test_gt
+        train_input_dir: data/presplit/train_gt
+        valid_input_dir: data/presplit/valid_gt
+        test_input_dir: data/presplit/test_gt
         n_train: 10000 #0
         n_valid: 4000 #00
         n_test: 4000  #00

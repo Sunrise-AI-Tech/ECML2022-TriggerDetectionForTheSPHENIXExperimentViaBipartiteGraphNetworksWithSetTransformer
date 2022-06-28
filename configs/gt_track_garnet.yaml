@@ -1,5 +1,4 @@
 output_dir: train_results/garnet/
-tensorboard_output_dir: runs/garnet/
 
 epochs: 50
 optimizer:
@@ -19,7 +18,7 @@ data:
         train_input_dir: /home/giorgian/data/presplit/train_gt
         valid_input_dir: /home/giorgian/data/presplit/valid_gt
         test_input_dir: /home/giorgian/data/presplit/test_gt
-        n_train: 1000 #000
+        n_train: 10000 #00
         n_valid: 4000 #00
         n_test: 4000 #00
         add_geo_features: True

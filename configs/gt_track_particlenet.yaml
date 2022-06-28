@@ -28,12 +28,12 @@ model:
 
 data:
         name: trkvec-ecml
-        train_input_dir: /home/giorgian/data/presplit/train_gt
-        valid_input_dir: /home/giorgian/data/presplit/valid_gt
-        test_input_dir: /home/giorgian/data/presplit/test_gt
-        n_train: 1000000
-        n_valid: 400000
-        n_test: 400000
+        train_input_dir: data/presplit/train_gt
+        valid_input_dir: data/presplit/valid_gt
+        test_input_dir: data/presplit/test_gt
+        n_train: 10000 #00
+        n_valid: 4000 #00
+        n_test: 4000 #00
         add_geo_features: True
         use_radius: True
 

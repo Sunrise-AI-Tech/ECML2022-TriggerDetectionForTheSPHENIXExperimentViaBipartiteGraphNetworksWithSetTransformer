@@ -187,7 +187,6 @@ def main():
 
     config['output_dir'] = os.path.join(config['output_dir'], f'experiment_{start_time:%Y-%m-%d_%H:%M:%S}')
     os.makedirs(config['output_dir'], exist_ok=True)
-    config['tensorboard_output_dir'] = os.path.join(config['tensorboard_output_dir'], f'experiment_{start_time:%Y-%m-%d_%H:%M:%S}')
 
     # Setup logging
     file_handler = config_logging(verbose=args.verbose, output_dir=config['output_dir'],
