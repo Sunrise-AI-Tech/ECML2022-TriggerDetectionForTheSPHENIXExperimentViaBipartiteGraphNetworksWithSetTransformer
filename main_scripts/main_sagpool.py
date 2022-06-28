@@ -432,7 +432,7 @@ def main():
     logging.info(f'Best validation acc: {best_val_ri:.4f}, best epoch: {best_epoch}.')
     logging.info(f'Training runtime: {str(datetime.now() - start_time).split(".")[0]}')
 
-    test_info = evaluate(test_data, model_pnl, best_model, epoch,
+    test_info = evaluate(test_data, model_pnl, best_model, epoch, threshold=config['threshold'],
             use_radius=config['data']['use_radius']
         )
 

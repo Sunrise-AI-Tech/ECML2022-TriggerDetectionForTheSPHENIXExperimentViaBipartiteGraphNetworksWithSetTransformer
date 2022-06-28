@@ -1,5 +1,11 @@
 # Bipartite Neural Network
 
+# Dependencies
+```
+conda create -n biatt cudatoolkit=11.3 numpy pandas python pytorch pytorch-scatter pyyaml scikit-learn tqdm pyg -c pyg -c pytorch
+pip install -r requirements.txt
+```
+
 ## Specifying the location of Training, Evaluation, and Test Data
 Each model `X` has a respective file configuration file located at`configs/gt_track_X.yaml`. For example, the Bipartite model can
 be run using `main_scripts/main_biatt.py` and has the configuration file `configs/gt_track_biatt.yaml`.

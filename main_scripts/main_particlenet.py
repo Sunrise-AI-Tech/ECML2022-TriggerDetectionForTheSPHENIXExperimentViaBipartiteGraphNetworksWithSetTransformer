@@ -33,7 +33,7 @@ from models.ParticleNetLaplace import ParticleNetLaplace
 from dataloaders import get_data_loaders
 from utils.log import write_checkpoint, load_config, load_checkpoint, config_logging, save_config, print_model_summary, get_terminal_columns, center_text, make_table
 
-DEVICE = 'cuda'
+DEVICE = 'cuda:0'
 def parse_args():
     """
     Define and retrieve command line arguements
@@ -266,7 +266,7 @@ def main():
         )
         mlp_params = ((128, 0.1),)
         final_pooling = 'mean'
-        input_dim = config['adj_model']['num_features'] + config['data']['use_radius'] + 13*config['data']['add_geo_features']
+        input_dim = config['model']['num_features'] + config['data']['use_radius'] + 13*config['data']['add_geo_features']
         model = ParticleNetLaplace(
                 conv_params,
                 mlp_params,
@@ -282,7 +282,7 @@ def main():
         )
         mlp_params = ((256, 0.1),)
         final_pooling = 'mean'
-        input_dim = config['adj_model']['num_features'] + config['data']['use_radius'] + 13*config['data']['add_geo_features']
+        input_dim = config['model']['num_features'] + config['data']['use_radius'] + 13*config['data']['add_geo_features']
         model = ParticleNetLaplace(
                 conv_params,
                 mlp_params,
