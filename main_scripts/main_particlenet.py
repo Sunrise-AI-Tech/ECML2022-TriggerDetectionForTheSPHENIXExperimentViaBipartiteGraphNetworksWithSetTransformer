@@ -4,11 +4,9 @@ import sys
 import argparse
 import copy
 import shutil
-import json
 import logging
 import yaml
 import pickle
-from pprint import pprint
 from datetime import datetime
 from functools import partial
 from sklearn.metrics import roc_auc_score
