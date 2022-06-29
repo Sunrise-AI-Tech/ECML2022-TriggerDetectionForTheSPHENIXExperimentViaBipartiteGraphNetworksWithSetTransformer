@@ -20,8 +20,6 @@ import torch.nn as nn
 import pickle
 import torch_geometric
 
-import wandb
-
 # Change working directory to project's main directory, and add it to path - for library and config usages
 project_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 sys.path.append(project_dir)
@@ -59,11 +57,6 @@ def parse_args():
     argparser.add_argument('--print_interval', type=int, default=250,
             help="Number of steps between printing key stats")
     
-    argparser.add_argument('--wandb', type=str, default='trigger-settrans', 
-            help="wandb project name")
-    argparser.add_argument('--use_wandb', action='store_true',
-                        help="use wandb project name")
-
     args = argparser.parse_args()
 
     return args
@@ -85,7 +78,7 @@ def calc_metrics(trig, pred, accum_info):
     return accum_info
 
 
-def train(data, model, optimizer, epoch, output_dir, use_wandb=False, use_radius=False):
+def train(data, model, optimizer, epoch, output_dir, use_radius=False):
     train_info = do_epoch(data, model, epoch, optimizer, use_radius=use_radius)
     write_checkpoint(checkpoint_id=epoch, model=model, optimizer=optimizer, output_dir=output_dir)
     return train_info
@@ -217,15 +210,6 @@ def main():
     save_config(config)
     # os.environ['CUDA_LAUNCH_BLOCKING'] = "1"  # uncomment only for CUDA error debugging
     # os.environ["CUDA_VISIBLE_DEVICES"] = config.gpu
-    name = config['name_on_wandb'] + f"-nhead{config['model']['num_heads']}-hid_d{config['model']['dim_hidden']}-use_radius{config['data']['use_radius']}-ln{config['model']['ln']}-ntrain{config['data']['n_train']}*2-lr{config['optimizer']['learning_rate']}-{config['optimizer']['type']}-b{config['data']['batch_size']}"
-    if args.use_wandb:
-        wandb.init(
-            project=f'{args.wandb}', 
-            name=f'{name}',
-            tags=["Sunrise", "Trigger"],
-            config=config,
-        )
-
     torch.cuda.set_device(int(args.gpu))
 
     # Load data
@@ -310,15 +294,6 @@ def main():
             table
         )))
         train_loss[epoch-1], train_ri[epoch-1] = train_info['loss'], train_info['ri']
-        if args.use_wandb:
-            phase = 'train'
-            wandb.log({phase.capitalize() + " Loss" : train_info['loss']})
-            wandb.log({phase.capitalize() + " Accuracy" : train_info['ri']})
-            wandb.log({phase.capitalize() + " Precion" : train_info['precision']})
-            wandb.log({phase.capitalize() + " Recall": train_info['recall']})
-            wandb.log({phase.capitalize() + " F Score": train_info['fscore']})
-            wandb.log({phase.capitalize() + " Roc_auc": train_info['auroc']})
-            wandb.log({phase.capitalize() + " Run Time": train_info['run_time']})
 
         val_info = evaluate(val_data, model, epoch, use_radius=config['data']['use_radius'])
         table = make_table(
@@ -341,15 +316,6 @@ def main():
             )))
 
         val_loss[epoch-1], val_ri[epoch-1] = val_info['loss'], val_info['ri']
-        if args.use_wandb:
-            phase = 'valid'
-            wandb.log({phase.capitalize() + " Loss" : val_info['loss']})
-            wandb.log({phase.capitalize() + " Accuracy" : val_info['ri']})
-            wandb.log({phase.capitalize() + " Precion" : val_info['precision']})
-            wandb.log({phase.capitalize() + " Recall": val_info['recall']})
-            wandb.log({phase.capitalize() + " F Score": val_info['fscore']})
-            wandb.log({phase.capitalize() + " Roc_auc": val_info['auroc']})
-            wandb.log({phase.capitalize() + " Run Time": val_info['run_time']})
 
         if val_info['ri'] > best_val_ri:
             best_val_ri = val_info['ri']

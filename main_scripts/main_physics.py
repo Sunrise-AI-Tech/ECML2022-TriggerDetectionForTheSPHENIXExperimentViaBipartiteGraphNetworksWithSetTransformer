@@ -32,8 +32,7 @@ from utils.log import write_checkpoint, load_config, load_checkpoint, config_log
 from sklearn.metrics import r2_score
 from scipy.stats import pearsonr, spearmanr
 
-DEVICE = 'cuda:1'
-OLD_COLUMNS = None
+DEVICE = 'cuda'
 
 def parse_args():
     """
@@ -54,8 +53,6 @@ def parse_args():
     # Logging
     argparser.add_argument('--name', type=str, default=None,
             help="Run name")
-    argparser.add_argument('--wandb', type=str, default='trigger-pns', 
-            help="wandb project name")
     argparser.add_argument('--log_interval', type=int, default=25,
             help="Number of steps between logging key stats")
     argparser.add_argument('--print_interval', type=int, default=250,

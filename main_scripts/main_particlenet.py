@@ -31,7 +31,8 @@ from models.ParticleNetLaplace import ParticleNetLaplace
 from dataloaders import get_data_loaders
 from utils.log import write_checkpoint, load_config, load_checkpoint, config_logging, save_config, print_model_summary, get_terminal_columns, center_text, make_table
 
-DEVICE = 'cuda:0'
+DEVICE = 'cuda'
+
 def parse_args():
     """
     Define and retrieve command line arguements

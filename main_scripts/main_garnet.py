@@ -52,10 +52,6 @@ def parse_args():
     # Logging
     argparser.add_argument('--name', type=str, default=None,
             help="Run name")
-    argparser.add_argument('--wandb', type=str, default='trigger-pns', 
-            help="wandb project name")
-    argparser.add_argument('--use_wandb', action='store_true',
-                        help="use wandb project name")
     argparser.add_argument('--log_interval', type=int, default=25,
             help="Number of steps between logging key stats")
     argparser.add_argument('--print_interval', type=int, default=250,

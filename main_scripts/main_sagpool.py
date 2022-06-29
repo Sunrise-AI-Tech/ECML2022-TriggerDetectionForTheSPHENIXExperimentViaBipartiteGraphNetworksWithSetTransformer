@@ -33,7 +33,7 @@ from utils.log import write_checkpoint, load_config, load_checkpoint, config_log
 class ArgDict:
     pass
 
-DEVICE = 'cuda:1'
+DEVICE = 'cuda'
 
 def parse_args():
     """
@@ -54,10 +54,6 @@ def parse_args():
     # Logging
     argparser.add_argument('--name', type=str, default=None,
             help="Run name")
-    argparser.add_argument('--wandb', type=str, default='trigger-pns', 
-            help="wandb project name")
-    argparser.add_argument('--use_wandb', action='store_true',
-                        help="use wandb project name")
     argparser.add_argument('--log_interval', type=int, default=25,
             help="Number of steps between logging key stats")
     argparser.add_argument('--print_interval', type=int, default=250,
@@ -84,7 +80,7 @@ def calc_metrics(trig, pred, accum_info):
     return accum_info
 
 
-def train(data, model_pnl, model, optimizer, epoch, output_dir, use_wandb=False,  threshold=0.5, use_radius=False):
+def train(data, model_pnl, model, optimizer, epoch, output_dir, threshold=0.5, use_radius=False):
     train_info = do_epoch(data, model_pnl, model, epoch, optimizer, threshold=threshold, use_radius=use_radius)
     write_checkpoint(checkpoint_id=epoch, model=model, optimizer=optimizer, output_dir=output_dir)
     return train_info
