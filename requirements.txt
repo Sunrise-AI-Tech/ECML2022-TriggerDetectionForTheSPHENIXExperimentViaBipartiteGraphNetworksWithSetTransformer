@@ -1,2 +1,1 @@
 icecream==2.1.2
-wandb==0.12.19
