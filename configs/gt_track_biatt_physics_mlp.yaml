@@ -1,0 +1,40 @@
+output_dir: train_results/biatt-physics/
+
+name_on_wandb: biatt-gttrack
+model_physics_path: train_results/cached_models/physics_hidden-size-8.pth.tar
+
+epochs: 10
+optimizer:
+  type: Adam
+  momentum: 0.9
+  learning_rate: 0.0001
+  weight_decay: 0.0001
+
+model_mod: 4
+model:
+  num_features: 15 
+  layers_spec: [[64, 16], [64, 16], [64, 16]]
+  num_classes: 2
+  aggregator_activation: softmax
+
+physics_model:
+  n_features: 15 
+  n_hidden: 4
+  hidden_size: 8
+  hidden_activation: ReLU
+  n_classes: 1
+
+data:
+        name: trkvec-ecml
+        train_input_dir: data/presplit/train_gt
+        valid_input_dir: data/presplit/valid_gt
+        test_input_dir: data/presplit/test_gt
+        n_train: 10000 #00
+        n_valid: 4000 #00
+        n_test: 4000 #00
+        add_geo_features: True
+        use_radius: True
+
+        batch_size: 32
+        n_workers: 4
+        load_complete_graph: False

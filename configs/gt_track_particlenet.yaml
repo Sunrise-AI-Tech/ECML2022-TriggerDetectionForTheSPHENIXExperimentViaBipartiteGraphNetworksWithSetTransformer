@@ -1,0 +1,42 @@
+output_dir: train_results/particlenet/
+epochs: 50
+
+optimizer:
+  type: Adam
+  momentum: 0.9
+  weight_decay: 0.0001
+  learning_rate: 0.001
+
+model:
+  type: particlenet-laplace
+  num_features: 15
+  hidden_dim: 20
+  hidden_activation: Tanh
+  layer_norm: True
+  affinity_loss: True
+  affinity_loss_CE_weight: 1
+  affinity_loss_Lp_weight: 0.000001
+  affinity_loss_11_weight: 0.000001
+  affinity_loss_frobenius_weight: 0.000001
+  d_metric: intertrack #einsum
+  k: 15
+  GNN_config:
+    hidden_dim: 64
+    hidden_activation: Tanh
+    layer_norm: True
+    n_graph_iters: 3
+
+data:
+        name: trkvec-ecml
+        train_input_dir: data/presplit/train_gt
+        valid_input_dir: data/presplit/valid_gt
+        test_input_dir: data/presplit/test_gt
+        n_train: 10000 #00
+        n_valid: 4000 #00
+        n_test: 4000 #00
+        add_geo_features: True
+        use_radius: True
+
+        batch_size: 32
+        n_workers: 4
+        load_complete_graph: False

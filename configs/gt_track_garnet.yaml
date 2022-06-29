@@ -1,0 +1,29 @@
+output_dir: train_results/garnet/
+
+epochs: 50
+optimizer:
+  type: Adam
+  momentum: 0.9
+  learning_rate: 0.0001
+  weight_decay: 0.0001
+
+model:
+  num_features: 15
+  layers_spec: [[64, 8], [128, 16], [64, 8]]
+  num_classes: 2
+  potential: garnet
+
+data:
+        name: trkvec-ecml
+        train_input_dir: /home/giorgian/data/presplit/train_gt
+        valid_input_dir: /home/giorgian/data/presplit/valid_gt
+        test_input_dir: /home/giorgian/data/presplit/test_gt
+        n_train: 10000 #00
+        n_valid: 4000 #00
+        n_test: 4000 #00
+        add_geo_features: True
+        use_radius: True
+
+        batch_size: 32
+        n_workers: 4
+        load_complete_graph: False
