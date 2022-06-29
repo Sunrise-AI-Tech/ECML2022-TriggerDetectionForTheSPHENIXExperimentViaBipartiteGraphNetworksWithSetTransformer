@@ -34,7 +34,6 @@ Thumbs.db
 
 # Applications
 *.pth.tar
-train_results/tmp/
 runs/tmp/
 *.exe
 *.war
@@ -47,5 +46,3 @@ runs/tmp/
 *.mov
 *.wmv
 *.path.tar
-
-train_results/
