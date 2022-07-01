@@ -101,3 +101,6 @@ Specify the SagPool model using the following fields in `config/gt_track_sagpool
  - `pooling_ratio`: Specifies the Sagpool pooling ratio.
  - `dropout_ratio`: Specifies the dropout ratio used in dropout layers in the model.
  
+
+# Contact Information
+For questions, or to request the full dataset, please contact `yu.sun@sunriseaitech.com`
